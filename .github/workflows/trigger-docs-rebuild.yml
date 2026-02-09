@@ -1,0 +1,33 @@
+name: Trigger Docs Rebuild
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "openapi.yaml"
+      - "openapi.json"
+  workflow_dispatch: {}
+
+jobs:
+  trigger-mintlify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Mintlify rebuild
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://api.mintlify.com/v1/project/update/${{ secrets.MINTLIFY_PROJECT_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.MINTLIFY_API_KEY }}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" != "202" ]; then
+            echo "::error::Mintlify rebuild trigger failed with status $http_code"
+            exit 1
+          fi
+
+          echo "Mintlify rebuild triggered successfully"
