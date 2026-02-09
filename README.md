@@ -1,5 +1,7 @@
 # HoneyHive OpenAPI Specification
 
+> **Preview:** This spec is a preview for an upcoming major release of the HoneyHive API. Endpoints, schemas, and behavior may change before the stable release. Do not depend on this spec for production integrations until the release is finalized.
+
 The official [OpenAPI](https://www.openapis.org/) specification for the [HoneyHive API](https://api.honeyhive.ai).
 
 ## Files
