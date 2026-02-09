@@ -44,7 +44,7 @@ Import `openapi.json` into [Postman](https://www.postman.com/) to explore the AP
 
 ## How This Repo Is Updated
 
-This repository is automatically updated by CI in the HoneyHive platform repo whenever code is merged to the default branch and all checks pass. The spec is regenerated from source and pushed here in both YAML and JSON formats.
+This repository is automatically updated by CI in the HoneyHive platform repo. The spec is regenerated from source and pushed here in both YAML and JSON formats.
 
 ## License
 
