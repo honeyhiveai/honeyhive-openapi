@@ -230,7 +230,7 @@
               "example": {
                 "event_id": "7f22137a-6911-4ed3-bc36-110f1dde6b66",
                 "metadata": {
-                  "cost": 8e-05,
+                  "cost": 0.00008,
                   "completion_tokens": 23,
                   "prompt_tokens": 35,
                   "total_tokens": 58
