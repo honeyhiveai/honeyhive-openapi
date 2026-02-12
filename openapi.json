@@ -139,7 +139,7 @@
         ],
         "operationId": "createEvent",
         "summary": "Create a new event",
-        "description": "Please refer to our instrumentation guide for detailed information. The event field should contain a JSON-encoded event object as a string.",
+        "description": "Create a new event (span) within a session trace. The request body wraps the event in a JSON-encoded string under the `event` key.\n**Required properties** within the JSON-encoded event string:\n- `event_type` (string) — Must be one of: `chain`, `model`, `tool`, `session`.\n- `inputs` (object) — Input data for the event.\n**Auto-generated properties** (provided by the server when omitted):\n- `event_id` (string, UUID) — Unique identifier for the event.\n- `session_id` (string, UUID) — Session/trace identifier.\n- `parent_id` (string, UUID) — Parent event ID. Defaults to `session_id`.\n**Optional properties with defaults:**\n- `event_name` (string) — Name of the event. Defaults to `\"unknown\"`.\n- `source` (string) — Source of the event (e.g. `sdk-python`). Defaults to `\"unknown\"`.\n**Optional properties:**\n- `config` (object) — Configuration data (e.g. model parameters, prompt templates).\n- `outputs` (object) — Output data from the event.\n- `error` (string or null) — Error message if the event failed.\n- `children_ids` (array of strings) — IDs of child events.\n- `duration` (number) — Duration of the event in milliseconds.\n- `start_time` (number) — Unix timestamp in milliseconds for event start.\n- `end_time` (number) — Unix timestamp in milliseconds for event end.\n- `metadata` (object) — Additional metadata (e.g. token counts, cost).\n- `metrics` (object) — Custom metrics.\n- `feedback` (object) — Feedback data (e.g. ratings, ground truth).\n- `user_properties` (object) — User properties associated with the event.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -152,9 +152,12 @@
                 "properties": {
                   "event": {
                     "type": "string",
-                    "description": "JSON-encoded event object containing event properties (event_id, session_id, event_type, event_name, inputs, outputs, etc.)"
+                    "description": "JSON-encoded event object string. Must be valid JSON containing at minimum `event_type` (one of: `chain`, `model`, `tool`, `session`) and `inputs` (object). Fields like `event_id` and `session_id` are auto-generated if not provided.\n"
                   }
                 }
+              },
+              "example": {
+                "event": "{\"event_type\":\"model\",\"event_name\":\"llm_call\",\"inputs\":{\"prompt\":\"hello\"},\"outputs\":{\"response\":\"hi\"},\"config\":{\"model\":\"gpt-4\",\"temperature\":0.7},\"metadata\":{\"cost\":0.00008,\"completion_tokens\":23,\"prompt_tokens\":35},\"source\":\"sdk-python\",\"duration\":1500,\"start_time\":1700000000000,\"end_time\":1700000001500}"
               }
             }
           }
@@ -1039,117 +1042,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RunMetricResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tools": {
-      "get": {
-        "tags": [
-          "Tools"
-        ],
-        "summary": "Retrieve a list of tools",
-        "operationId": "getTools",
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the list of tools",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GetToolsResponse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Tools"
-        ],
-        "summary": "Create a new tool",
-        "operationId": "createTool",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateToolRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Tool successfully created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateToolResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Tools"
-        ],
-        "summary": "Update an existing tool",
-        "operationId": "updateTool",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateToolRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successfully updated the tool",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateToolResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Tools"
-        ],
-        "summary": "Delete a tool",
-        "operationId": "deleteTool",
-        "parameters": [
-          {
-            "name": "function_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully deleted the tool",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeleteToolResponse"
                 }
               }
             }
@@ -6958,161 +6850,6 @@
           "deleted"
         ],
         "description": "Confirmation of session deletion"
-      },
-      "ToolItem": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "parameters": {},
-          "tool_type": {
-            "type": "string",
-            "enum": [
-              "function",
-              "tool"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "created_at"
-        ]
-      },
-      "CreateToolRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "description": {
-            "type": "string"
-          },
-          "parameters": {},
-          "tool_type": {
-            "type": "string",
-            "enum": [
-              "function",
-              "tool"
-            ]
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "additionalProperties": false
-      },
-      "UpdateToolRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "description": {
-            "type": "string"
-          },
-          "parameters": {},
-          "tool_type": {
-            "type": "string",
-            "enum": [
-              "function",
-              "tool"
-            ]
-          },
-          "id": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "id"
-        ],
-        "additionalProperties": false
-      },
-      "DeleteToolQuery": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "id"
-        ],
-        "additionalProperties": false
-      },
-      "GetToolsResponse": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/ToolItem"
-        }
-      },
-      "CreateToolResponse": {
-        "type": "object",
-        "properties": {
-          "inserted": {
-            "type": "boolean"
-          },
-          "result": {
-            "$ref": "#/components/schemas/ToolItem"
-          }
-        },
-        "required": [
-          "inserted",
-          "result"
-        ]
-      },
-      "UpdateToolResponse": {
-        "type": "object",
-        "properties": {
-          "updated": {
-            "type": "boolean"
-          },
-          "result": {
-            "$ref": "#/components/schemas/ToolItem"
-          }
-        },
-        "required": [
-          "updated",
-          "result"
-        ]
-      },
-      "DeleteToolResponse": {
-        "type": "object",
-        "properties": {
-          "deleted": {
-            "type": "boolean"
-          },
-          "result": {
-            "$ref": "#/components/schemas/ToolItem"
-          }
-        },
-        "required": [
-          "deleted",
-          "result"
-        ]
       },
       "TODOSchema": {
         "type": "object",
