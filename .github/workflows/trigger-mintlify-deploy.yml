@@ -1,0 +1,91 @@
+name: Trigger Mintlify Deploy
+
+# Required repository secrets:
+# - MINTLIFY_PROJECT_ID
+# - MINTLIFY_API_KEY
+# - SLACK_CI_FAILURE_WEBHOOK_URL
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - openapi.yaml
+      - openapi.json
+      - .github/workflows/trigger-mintlify-deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency: trigger-mintlify-deploy
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger Mintlify deployment
+        id: mintlify
+        env:
+          MINTLIFY_PROJECT_ID: ${{ secrets.MINTLIFY_PROJECT_ID }}
+          MINTLIFY_API_KEY: ${{ secrets.MINTLIFY_API_KEY }}
+        run: |
+          if [ -z "$MINTLIFY_PROJECT_ID" ] || [ -z "$MINTLIFY_API_KEY" ]; then
+            echo "Missing MINTLIFY_PROJECT_ID or MINTLIFY_API_KEY"
+            exit 1
+          fi
+
+          response_file="$(mktemp)"
+          http_code="$(
+            curl -sS \
+              -o "$response_file" \
+              -w "%{http_code}" \
+              -X POST \
+              "https://api.mintlify.com/v1/project/update/${MINTLIFY_PROJECT_ID}" \
+              -H "Authorization: Bearer ${MINTLIFY_API_KEY}" \
+              -H "Content-Type: application/json"
+          )"
+
+          cat "$response_file"
+
+          if [ "$http_code" != "202" ]; then
+            echo "Mintlify returned HTTP ${http_code}"
+            exit 1
+          fi
+
+          status_id="$(jq -r '.statusId // empty' < "$response_file")"
+          if [ -z "$status_id" ]; then
+            echo "Mintlify response did not include a statusId"
+            exit 1
+          fi
+
+          echo "status_id=${status_id}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Mintlify deployment queued"
+            echo
+            echo "- Status ID: \`${status_id}\`"
+            echo "- Triggered from: \`${GITHUB_REPOSITORY}\`"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_CI_FAILURE_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Mintlify deployment trigger failed for honeyhive-openapi",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Mintlify deployment trigger failed*\n\nThe automated Mintlify deployment trigger from `honeyhive-openapi` failed after an OpenAPI spec update.\n\n*Branch:* `${{ github.ref_name }}`\n*Spec source:* `openapi.yaml` / `openapi.json`\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Failed Run>"
+                  }
+                }
+              ]
+            }
