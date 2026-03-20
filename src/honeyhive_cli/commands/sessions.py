@@ -27,13 +27,12 @@ def get(state: State, session_id: str) -> None:
 @pass_state
 def start(state: State, session_data: str) -> None:
     """Start a new session."""
-    # Validate that the input is valid JSON
     try:
-        json.loads(session_data)
+        parsed = json.loads(session_data)
     except json.JSONDecodeError as exc:
         raise click.ClickException(f"Invalid JSON for --session: {exc}") from exc
 
-    resp = state.client.post("/session/start", json={"session": session_data})
+    resp = state.client.post("/session/start", json={"session": parsed})
     output(resp.json(), state.output)
 
 

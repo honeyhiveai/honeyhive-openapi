@@ -1,5 +1,7 @@
 """HoneyHive CLI entry point."""
 
+from __future__ import annotations
+
 import click
 
 from honeyhive_cli import __version__
