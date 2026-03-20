@@ -28,11 +28,11 @@ def get(state: State, session_id: str) -> None:
 def start(state: State, session_data: str) -> None:
     """Start a new session."""
     try:
-        parsed = json.loads(session_data)
+        json.loads(session_data)
     except json.JSONDecodeError as exc:
         raise click.ClickException(f"Invalid JSON for --session: {exc}") from exc
 
-    resp = state.client.post("/session/start", json={"session": parsed})
+    resp = state.client.post("/session/start", json={"session": session_data})
     output(resp.json(), state.output)
 
 
