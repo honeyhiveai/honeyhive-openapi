@@ -10,7 +10,7 @@
   },
   "servers": [
     {
-      "url": "https://api.honeyhive.ai"
+      "url": "https://api.dp1.us.honeyhive.ai"
     }
   ],
   "paths": {
