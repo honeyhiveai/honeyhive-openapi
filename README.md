@@ -2,7 +2,7 @@
 
 > **Preview:** These specs are a preview for an upcoming major release of the HoneyHive API. Endpoints, schemas, and behavior may change before the stable release. Do not depend on these specs for production integrations until the release is finalized.
 
-The official [OpenAPI](https://www.openapis.org/) specifications for the HoneyHive APIs: the [Data Plane API](https://api.dp1.us.honeyhive.ai) (event ingestion, evaluation, and observability data) and the [Control Plane API](https://api.honeyhive.ai) (projects, alerts, and workspace management).
+The official [OpenAPI](https://www.openapis.org/) specifications for the HoneyHive APIs: the Data Plane API (event ingestion, evaluation, and observability data) and the Control Plane API (projects and alerts). Each spec's `servers` entry is the authoritative base URL for that API.
 
 ## Files
 
