@@ -1,0 +1,1161 @@
+openapi: 3.1.0
+info:
+  title: HoneyHive Control Plane API
+  description: |
+    Manage HoneyHive control-plane resources: projects and alerts.
+
+    Authentication requires a fine-grained control-plane API key (values
+    start with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.
+    Project API keys used with the Data Plane API will not work here. Create
+    a key in the HoneyHive app under an organization's or workspace's
+    **Settings → API Keys**, or see
+    [Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)
+    for details.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: 1.7.0
+servers:
+  - url: https://api.cp.us.honeyhive.ai
+tags:
+  - name: Alerts
+    description: |
+      Define and manage alerts. Alerts evaluate event metrics on a schedule and trigger notifications when configured thresholds are crossed.
+  - name: Projects
+    description: |
+      Create and manage projects within a workspace. A project is the container for the events, datasets, evaluations, and alerts logged against it.
+paths:
+  /v1/projects/{project_id}/alerts:
+    get:
+      tags:
+        - Alerts
+      operationId: listAlerts
+      x-cli-name: list
+      x-ts-sdk-name: list
+      summary: List alerts
+      description: |
+        List the alerts in a project. The project is identified by the `project_id` path parameter
+        alone; the `x-hh-project-id` header does not participate. Supports offset pagination, an
+        optional status filter, and sorting (defaults to most recently created first).
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project whose alerts are listed
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 1-indexed page number
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of alerts to return per page
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum:
+              - ACTIVE
+              - TRIGGERED
+              - PAUSED
+              - RESOLVED
+          description: Only return alerts in this status
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum:
+              - created_at
+              - updated_at
+              - name
+              - status
+              - frequency
+              - last_triggered
+            default: created_at
+          description: Field to sort results by
+        - in: query
+          name: sort_order
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          description: Sort order
+      responses:
+        '200':
+          description: Alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAlertsResponse'
+        '400':
+          description: Invalid pagination or filter parameters
+    post:
+      tags:
+        - Alerts
+      operationId: createAlert
+      x-cli-name: create
+      x-ts-sdk-name: create
+      summary: Create an alert
+      description: |
+        Create an alert in a project. The project is identified by the `project_id` path parameter
+        alone; the `x-hh-project-id` header does not participate. The alert's `filters` and
+        `projections` (metrics) are mapped against the project's logged-event schema; if no schema
+        data matches them — e.g. no events have been logged to the project yet — the request fails
+        with a 400.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project the alert is created in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostAlertRequest'
+      responses:
+        '200':
+          description: Alert created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateAlertResponse'
+        '400':
+          description: Invalid request body, or no schema data matches the selected filters/metrics
+        '404':
+          description: Project not found
+  /v1/projects/{project_id}/alerts/{alert_id}:
+    get:
+      tags:
+        - Alerts
+      operationId: getAlert
+      x-cli-name: get
+      x-ts-sdk-name: get
+      summary: Get an alert
+      description: |
+        Retrieve a single alert by id, including its thresholds, triggers, and notification
+        configuration. The alert's project is identified by the `project_id` path parameter alone;
+        the `x-hh-project-id` header does not participate.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project the alert belongs to
+        - in: path
+          name: alert_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the alert to retrieve
+      responses:
+        '200':
+          description: Alert retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAlertResponse'
+        '404':
+          description: Alert not found
+  /v1/workspaces/{workspace_id}/projects:
+    post:
+      tags:
+        - Projects
+      operationId: createProject
+      x-cli-name: create
+      x-ts-sdk-name: create
+      summary: Create a project
+      description: |
+        Create a project in a workspace. The parent workspace is identified by the `workspace_id`
+        path parameter alone; the `x-hh-workspace-id` header does not participate.
+
+        The optional `project_creator` field names the user (by email) who receives the
+        project-creator membership on the new project. The named user must already be a member of
+        the workspace. When omitted, the project is created without any membership. The field is
+        only accepted on API-key-initiated requests. User-initiated creation always makes the
+        calling user the creator, so sending the field returns a 400.
+
+        The roles that membership carries come from your organization's role configuration. An
+        organization that grants no role on project creation is a supported case: the request
+        still succeeds and the named user receives no access. A 200 response is not by itself
+        confirmation that the named user was granted anything.
+
+        A `project_creator` who is already signed in does not see the new project immediately. A
+        session captures its scope tree and permission grants when it is created, so a membership
+        granted afterwards is not reflected in it. Creating the project marks that user's sessions
+        for refresh, and the refresh takes effect on their next request to the control plane, so
+        an idle browser tab may need a page reload.
+      parameters:
+        - in: path
+          name: workspace_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the workspace the project is created in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostProjectRequest'
+      responses:
+        '200':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProjectResponse'
+        '400':
+          description: Invalid request body, or an unknown/ineligible `project_creator`
+        '404':
+          description: Workspace not found
+  /v1/projects/{project_id}:
+    get:
+      tags:
+        - Projects
+      operationId: getProject
+      x-cli-name: get
+      x-ts-sdk-name: get
+      summary: Get a project
+      description: |
+        Retrieve a single project by id. The project is identified by the `project_id` path
+        parameter alone; the `x-hh-project-id` header does not participate.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project to retrieve
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetProjectResponse'
+        '404':
+          description: Project not found
+    put:
+      tags:
+        - Projects
+      operationId: updateProject
+      x-cli-name: update
+      x-ts-sdk-name: update
+      summary: Update a project
+      description: |
+        Update a project's display name and/or description. The project is identified by the
+        `project_id` path parameter alone; the `x-hh-project-id` header does not participate.
+        Only fields included in the request body are modified.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutProjectRequest'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateProjectResponse'
+        '400':
+          description: Invalid request body
+        '404':
+          description: Project not found
+    delete:
+      tags:
+        - Projects
+      operationId: deleteProject
+      x-cli-name: delete
+      x-ts-sdk-name: delete
+      summary: Delete a project
+      description: |
+        Delete a project. The project is soft-deleted (archived) and no longer appears in reads;
+        the response returns the archived project. The project is identified by the `project_id`
+        path parameter alone; the `x-hh-project-id` header does not participate.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project to delete
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteProjectResponse'
+        '404':
+          description: Project not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    AlertItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - TRIGGERED
+            - PAUSED
+            - RESOLVED
+        frequency:
+          type: string
+          enum:
+            - HOURLY
+            - DAILY
+            - WEEKLY
+            - MONTHLY
+        minimum_sample_size:
+          type: integer
+        alert_type:
+          type: string
+          enum:
+            - DRIFT
+            - AGGREGATE
+            - PER_EVENT
+        aggregation:
+          type: string
+        event_filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertEventFilter'
+        event_metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertEventMetric'
+        thresholds:
+          $ref: '#/components/schemas/AlertItemThresholds'
+        last_run_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+            - type: 'null'
+        last_result:
+          type:
+            - object
+            - 'null'
+          properties:
+            current_bucket_score:
+              anyOf:
+                - type: number
+                - type: boolean
+            previous_bucket_score:
+              anyOf:
+                - type: number
+                - type: boolean
+            last_triggered_baseline:
+              anyOf:
+                - type: number
+                - type: boolean
+            drift_percentage:
+              type: number
+            thresholds:
+              $ref: '#/components/schemas/AlertItemLastResultThresholds'
+            event_filters:
+              type: array
+              items: {}
+            event_metrics:
+              type: array
+              items: {}
+            aggregation:
+              type: string
+          additionalProperties: {}
+        trigger_error:
+          type:
+            - string
+            - 'null'
+        is_active:
+          type: boolean
+        is_muted:
+          type: boolean
+        created_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+        updated_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+            - type: 'null'
+        last_trigger_id:
+          type:
+            - string
+            - 'null'
+        scope_type:
+          type: string
+        scope_id:
+          type: string
+        created_by:
+          type:
+            - string
+            - 'null'
+        last_trigger:
+          $ref: '#/components/schemas/AlertTrigger'
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertTrigger'
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertNotification'
+      required:
+        - id
+        - name
+        - status
+        - frequency
+        - minimum_sample_size
+        - alert_type
+        - aggregation
+        - event_filters
+        - event_metrics
+        - thresholds
+        - is_active
+        - is_muted
+        - created_at
+        - scope_type
+        - scope_id
+      additionalProperties: false
+      description: Alert object
+    AlertEventFilter:
+      type: object
+      properties:
+        filter:
+          $ref: '#/components/schemas/SingleFilter'
+        type:
+          type: string
+          enum:
+            - float
+            - numeric
+            - boolean
+            - string
+            - 'null'
+      required:
+        - filter
+        - type
+      additionalProperties: false
+    SingleFilter:
+      type: object
+      properties:
+        field:
+          type: string
+        operator:
+          type: string
+          enum:
+            - exists
+            - not exists
+            - is
+            - is not
+            - contains
+            - not contains
+            - greater than
+            - less than
+            - after
+            - before
+        value:
+          anyOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: 'null'
+        type:
+          type: string
+          enum:
+            - string
+            - number
+            - boolean
+            - datetime
+      required:
+        - field
+        - operator
+        - value
+        - type
+    AlertEventMetric:
+      type: object
+      properties:
+        projection:
+          type: string
+          description: Projected field or metric for this entry
+        type:
+          type: string
+          enum:
+            - float
+            - numeric
+            - boolean
+            - string
+            - 'null'
+      required:
+        - projection
+        - type
+      additionalProperties: false
+    AlertTrigger:
+      type: object
+      properties:
+        id:
+          type: string
+        alert_id:
+          type: string
+        result:
+          $ref: '#/components/schemas/AlertTriggerResult'
+        muted:
+          type: boolean
+        notification_sent:
+          type: boolean
+        triggered_time:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+        resolved_time:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+            - type: 'null'
+        resolved_by:
+          type:
+            - string
+            - 'null'
+        created_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+        updated_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+      required:
+        - id
+        - alert_id
+        - result
+        - muted
+        - notification_sent
+        - triggered_time
+        - resolved_time
+        - resolved_by
+        - created_at
+        - updated_at
+      additionalProperties: false
+    AlertNotification:
+      type: object
+      properties:
+        id:
+          type: string
+        alert_id:
+          type: string
+        stage:
+          type: string
+          enum:
+            - CRITICAL
+            - RESOLUTION
+        channel:
+          type: string
+          enum:
+            - EMAIL
+            - SLACK
+            - WEBHOOK
+        scope:
+          type: string
+          enum:
+            - ALL_PROJECT_MEMBERS
+            - SPECIFIC_MEMBER
+        membership_id:
+          type:
+            - string
+            - 'null'
+        metadata:
+          type:
+            - object
+            - 'null'
+          additionalProperties: {}
+        last_sent_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+            - type: 'null'
+        created_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+        membership:
+          type:
+            - object
+            - 'null'
+          properties:
+            user:
+              $ref: '#/components/schemas/AlertNotificationMembershipUser'
+          required:
+            - user
+          additionalProperties: false
+      required:
+        - id
+        - alert_id
+        - stage
+        - channel
+        - scope
+        - created_at
+      additionalProperties: false
+    PostAlertRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        frequency:
+          type: string
+          enum:
+            - HOURLY
+            - DAILY
+            - WEEKLY
+            - MONTHLY
+        minimum_sample_size:
+          type: integer
+          default: 0
+        alert_type:
+          type: string
+          enum:
+            - DRIFT
+            - AGGREGATE
+            - PER_EVENT
+          default: AGGREGATE
+        aggregation:
+          type: string
+          enum:
+            - AVERAGE
+            - COUNT
+            - SUM
+            - MIN
+            - MAX
+            - P90
+            - P95
+            - P99
+            - MEDIAN
+          default: AVERAGE
+        thresholds:
+          $ref: '#/components/schemas/PostAlertRequestThresholds'
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/SingleFilter'
+        projections:
+          type: array
+          items:
+            type: string
+        notification_details:
+          $ref: '#/components/schemas/PostAlertRequestNotificationDetails'
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - TRIGGERED
+            - PAUSED
+            - RESOLVED
+      required:
+        - name
+        - frequency
+        - thresholds
+        - filters
+        - projections
+        - notification_details
+      additionalProperties: false
+    GetAlertResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/AlertItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: A single alert
+    GetAlertsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required:
+        - success
+        - data
+        - pagination
+      additionalProperties: false
+      description: A paginated list of alerts
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+        total_unfiltered:
+          type: integer
+          minimum: 0
+        total_pages:
+          type: integer
+          minimum: 0
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+      required:
+        - page
+        - limit
+        - total
+        - total_unfiltered
+        - total_pages
+        - has_next
+        - has_prev
+    CreateAlertResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/AlertItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The created alert
+    ProjectItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Project display name
+        description:
+          type: string
+          description: Project description
+        created_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+        updated_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+            - type: 'null'
+      required:
+        - id
+        - name
+        - description
+        - created_at
+      additionalProperties: false
+      description: Project object
+    PostProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Project display name
+        description:
+          type: string
+          description: Project description
+        project_creator:
+          type: string
+          format: email
+          description: Email of the user to grant the project-creator membership to (API key actors only). A signed-in user does not see the new project until their session refreshes, which happens on their next request to the control plane.
+      required:
+        - name
+      additionalProperties: false
+      description: Request body for creating a project
+    PutProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Project display name
+        description:
+          type: string
+          description: Project description
+      additionalProperties: false
+      description: Request body for updating a project
+    CreateProjectResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ProjectItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The created project
+    UpdateProjectResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ProjectItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The updated project
+    GetProjectResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ProjectItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: A single project
+    DeleteProjectResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ProjectItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The deleted (archived) project
+    AlertItemThresholdsCritical:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    AlertItemThresholdsResolved:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    AlertItemThresholds:
+      type: object
+      properties:
+        critical:
+          $ref: '#/components/schemas/AlertItemThresholdsCritical'
+        resolved:
+          $ref: '#/components/schemas/AlertItemThresholdsResolved'
+      required:
+        - critical
+        - resolved
+      additionalProperties: false
+    AlertItemLastResultThresholdsCritical:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    AlertItemLastResultThresholdsResolved:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    AlertItemLastResultThresholds:
+      type: object
+      properties:
+        critical:
+          $ref: '#/components/schemas/AlertItemLastResultThresholdsCritical'
+        resolved:
+          $ref: '#/components/schemas/AlertItemLastResultThresholdsResolved'
+      required:
+        - critical
+        - resolved
+      additionalProperties: false
+    AlertTriggerResultThresholdsCritical:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    AlertTriggerResultThresholdsResolved:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    AlertTriggerResultThresholds:
+      type: object
+      properties:
+        critical:
+          $ref: '#/components/schemas/AlertTriggerResultThresholdsCritical'
+        resolved:
+          $ref: '#/components/schemas/AlertTriggerResultThresholdsResolved'
+      required:
+        - critical
+        - resolved
+      additionalProperties: false
+    AlertTriggerResult:
+      type: object
+      properties:
+        current_bucket_score:
+          anyOf:
+            - type: number
+            - type: boolean
+        previous_bucket_score:
+          anyOf:
+            - type: number
+            - type: boolean
+        last_triggered_baseline:
+          anyOf:
+            - type: number
+            - type: boolean
+        drift_percentage:
+          type: number
+        thresholds:
+          $ref: '#/components/schemas/AlertTriggerResultThresholds'
+        event_filters:
+          type: array
+          items: {}
+        event_metrics:
+          type: array
+          items: {}
+        aggregation:
+          type: string
+      additionalProperties: {}
+    AlertNotificationMembershipUser:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+      additionalProperties: false
+    PostAlertRequestThresholdsCritical:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    PostAlertRequestThresholdsResolved:
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - greater_than
+            - less_than
+            - equal_to
+        value:
+          type: number
+      required:
+        - operator
+        - value
+      additionalProperties: false
+    PostAlertRequestThresholds:
+      type: object
+      properties:
+        critical:
+          $ref: '#/components/schemas/PostAlertRequestThresholdsCritical'
+        resolved:
+          $ref: '#/components/schemas/PostAlertRequestThresholdsResolved'
+      required:
+        - critical
+        - resolved
+      additionalProperties: false
+    PostAlertRequestNotificationDetailsCritical:
+      type: object
+      properties:
+        channel:
+          type: string
+          enum:
+            - EMAIL
+            - SLACK
+            - WEBHOOK
+        scope:
+          type: string
+          enum:
+            - ALL_PROJECT_MEMBERS
+            - SPECIFIC_MEMBER
+        user_ids:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - channel
+        - scope
+        - metadata
+      additionalProperties: false
+    PostAlertRequestNotificationDetailsResolved:
+      type: object
+      properties:
+        channel:
+          type: string
+          enum:
+            - EMAIL
+            - SLACK
+            - WEBHOOK
+        scope:
+          type: string
+          enum:
+            - ALL_PROJECT_MEMBERS
+            - SPECIFIC_MEMBER
+        user_ids:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - channel
+        - scope
+        - metadata
+      additionalProperties: false
+    PostAlertRequestNotificationDetails:
+      type: object
+      properties:
+        critical:
+          $ref: '#/components/schemas/PostAlertRequestNotificationDetailsCritical'
+        resolved:
+          $ref: '#/components/schemas/PostAlertRequestNotificationDetailsResolved'
+      required:
+        - critical
+        - resolved
+      additionalProperties: false
+security:
+  - BearerAuth: []
