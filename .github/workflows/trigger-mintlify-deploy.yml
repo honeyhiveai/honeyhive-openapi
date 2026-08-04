@@ -10,8 +10,10 @@ on:
     branches:
       - main
     paths:
-      - openapi.yaml
-      - openapi.json
+      - data_plane_openapi.yaml
+      - data_plane_openapi.json
+      - control_plane_openapi.yaml
+      - control_plane_openapi.json
       - .github/workflows/trigger-mintlify-deploy.yml
   workflow_dispatch:
 
@@ -84,7 +86,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Mintlify deployment trigger failed*\n\nThe automated Mintlify deployment trigger from `honeyhive-openapi` failed after an OpenAPI spec update.\n\n*Branch:* `${{ github.ref_name }}`\n*Spec source:* `openapi.yaml` / `openapi.json`\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Failed Run>"
+                    "text": "*Mintlify deployment trigger failed*\n\nThe automated Mintlify deployment trigger from `honeyhive-openapi` failed after an OpenAPI spec update.\n\n*Branch:* `${{ github.ref_name }}`\n*Spec source:* `data_plane_openapi.{yaml,json}` / `control_plane_openapi.{yaml,json}`\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Failed Run>"
                   }
                 }
               ]
