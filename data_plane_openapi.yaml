@@ -4,7 +4,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.7.0
+  version: 1.9.0
 servers:
   - url: https://api.dp1.us.honeyhive.ai
 tags:
@@ -6690,6 +6690,8 @@ components:
           additionalProperties: {}
         workspace_id:
           type: string
+          description: 'Deprecated: ignored. The workspace whose provider credentials run the metric is derived from the caller’s authenticated scope.'
+          deprecated: true
         feedback:
           $ref: '#/components/schemas/RunMetricRequestEventFeedback'
       additionalProperties: {}
@@ -6849,6 +6851,8 @@ components:
           additionalProperties: {}
         workspace_id:
           type: string
+          description: 'Deprecated: ignored. The workspace whose provider credentials run the metric is derived from the caller’s authenticated scope.'
+          deprecated: true
         feedback:
           $ref: '#/components/schemas/LegacyRunMetricRequestEventFeedback'
       additionalProperties: {}
