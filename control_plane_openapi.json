@@ -2,12 +2,12 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HoneyHive Control Plane API",
-    "description": "Manage HoneyHive control-plane resources: projects and alerts.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nProject API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
+    "description": "Manage HoneyHive control-plane resources: workspaces, projects and alerts.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nProject API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
     },
-    "version": "1.7.0"
+    "version": "1.9.0"
   },
   "servers": [
     {
@@ -22,6 +22,14 @@
     {
       "name": "Projects",
       "description": "Create and manage projects within a workspace. A project is the container for the events, datasets, evaluations, and alerts logged against it.\n"
+    },
+    {
+      "name": "Virtual Dataplanes",
+      "description": "Create and manage virtual data planes. A virtual data plane is a logical tenant boundary inside an organization, hosted on a physical cluster; several virtual data planes commonly share one cluster. Workspaces live inside a virtual data plane.\n"
+    },
+    {
+      "name": "Workspaces",
+      "description": "Read and manage workspaces. A workspace groups the projects belonging to one team or environment, and owns the API keys and AI provider secrets its projects share.\n"
     }
   ],
   "paths": {
@@ -229,6 +237,57 @@
         }
       }
     },
+    "/v1/virtual_dataplanes/{virtual_dataplane_id}/workspaces": {
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "createWorkspace",
+        "x-cli-name": "create",
+        "x-ts-sdk-name": "create",
+        "summary": "Create a workspace",
+        "description": "Create a workspace in a virtual data plane. The parent virtual data plane is identified by\nthe `virtual_dataplane_id` path parameter alone; the `x-hh-dataplane-id` header does not\nparticipate. Your organization's virtual data plane ids are listed on the API keys page of\nyour organization settings in the HoneyHive app. Most organizations have exactly one.\n\nThe new workspace contains no projects. Create one with\n`POST /v1/workspaces/{workspace_id}/projects` if you need it, because a workspace with no\nprojects has nowhere to log events.\n\nThe optional `workspace_creator` field names the user (by email) who receives the\nworkspace-creator membership on the new workspace. The named user must already be a member\nof the virtual data plane. When omitted, the workspace is created without any membership.\nThe field is only accepted on API-key-initiated requests. User-initiated creation always\nmakes the calling user the creator, so sending the field returns a 400.\n\nThe roles that membership carries come from your organization's role configuration. An\norganization that grants no role on workspace creation is a supported case: the request\nstill succeeds and the named user receives no access. A 200 response is not by itself\nconfirmation that the named user was granted anything.\n\nA `workspace_creator` who is already signed in does not see the new workspace immediately.\nA session captures its scope tree and permission grants when it is created, so a membership\ngranted afterwards is not reflected in it. Creating the workspace marks that user's sessions\nfor refresh, and the refresh takes effect on their next request to the control plane, so an\nidle browser tab may need a page reload.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "virtual_dataplane_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the virtual data plane the workspace is created in"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostWorkspaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workspace created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateWorkspaceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or an unknown/ineligible `workspace_creator`"
+          },
+          "404": {
+            "description": "Virtual data plane not found"
+          }
+        }
+      }
+    },
     "/v1/workspaces/{workspace_id}/projects": {
       "post": {
         "tags": [
@@ -238,7 +297,7 @@
         "x-cli-name": "create",
         "x-ts-sdk-name": "create",
         "summary": "Create a project",
-        "description": "Create a project in a workspace. The parent workspace is identified by the `workspace_id`\npath parameter alone; the `x-hh-workspace-id` header does not participate.\n\nThe optional `project_creator` field names the user (by email) who receives the\nproject-creator membership on the new project. The named user must already be a member of\nthe workspace. When omitted, the project is created without any membership. The field is\nonly accepted on API-key-initiated requests. User-initiated creation always makes the\ncalling user the creator, so sending the field returns a 400.\n\nThe roles that membership carries come from your organization's role configuration. An\norganization that grants no role on project creation is a supported case: the request\nstill succeeds and the named user receives no access. A 200 response is not by itself\nconfirmation that the named user was granted anything.\n\nA `project_creator` who is already signed in does not see the new project immediately. A\nsession captures its scope tree and permission grants when it is created, so a membership\ngranted afterwards is not reflected in it. Creating the project marks that user's sessions\nfor refresh, and the refresh takes effect on their next request to the control plane, so\nan idle browser tab may need a page reload.\n",
+        "description": "Create a project in a workspace. The parent workspace is identified by the `workspace_id`\npath parameter alone; the `x-hh-workspace-id` header does not participate. A workspace's id\nis listed on the API keys page of its workspace settings in the HoneyHive app.\n\nThe optional `project_creator` field names the user (by email) who receives the\nproject-creator membership on the new project. The named user must already be a member of\nthe workspace. When omitted, the project is created without any membership. The field is\nonly accepted on API-key-initiated requests. User-initiated creation always makes the\ncalling user the creator, so sending the field returns a 400.\n\nThe roles that membership carries come from your organization's role configuration. An\norganization that grants no role on project creation is a supported case: the request\nstill succeeds and the named user receives no access. A 200 response is not by itself\nconfirmation that the named user was granted anything.\n\nA `project_creator` who is already signed in does not see the new project immediately. A\nsession captures its scope tree and permission grants when it is created, so a membership\ngranted afterwards is not reflected in it. Creating the project marks that user's sessions\nfor refresh, and the refresh takes effect on their next request to the control plane, so\nan idle browser tab may need a page reload.\n",
         "parameters": [
           {
             "in": "path",
@@ -399,6 +458,344 @@
           },
           "404": {
             "description": "Project not found"
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace_id}": {
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "getWorkspace",
+        "x-cli-name": "get",
+        "x-ts-sdk-name": "get",
+        "summary": "Get a workspace",
+        "description": "Retrieve a single workspace by id. The workspace is identified by the `workspace_id` path\nparameter alone; the `x-hh-workspace-id` header does not participate.\n\nThe returned `name` is the workspace's display name. The globally unique slug the workspace\nwas assigned at creation is an internal detail and is not part of this contract.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetWorkspaceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "updateWorkspace",
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Update a workspace",
+        "description": "Update a workspace's display name and/or description. The workspace is identified by the\n`workspace_id` path parameter alone; the `x-hh-workspace-id` header does not participate.\nOnly fields included in the request body are modified.\n\nThe workspace's internal slug is not part of this contract and cannot be changed here.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutWorkspaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workspace updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateWorkspaceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "deleteWorkspace",
+        "x-cli-name": "delete",
+        "x-ts-sdk-name": "delete",
+        "summary": "Delete a workspace",
+        "description": "Delete a workspace. The workspace is soft-deleted (archived) and no longer appears in reads;\nthe response returns the archived workspace. The workspace is identified by the\n`workspace_id` path parameter alone; the `x-hh-workspace-id` header does not participate.\n\n**Deleting a workspace also archives every project inside it**, so the events, datasets,\nand evaluations in those projects are no longer reachable. Because that reaches well\nbeyond the resource named in the URL, a workspace that still has active projects is\nrejected with a 409 unless the request sets `dangerously_delete_child_scopes=true`.\nProjects that were already archived do not count, so a workspace emptied one project at a\ntime deletes without the flag.\n\nThe response describes only the workspace. It does not enumerate the projects archived\nalongside it, so read them first if you need that list.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace to delete"
+          },
+          {
+            "in": "query",
+            "name": "dangerously_delete_child_scopes",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Archive the workspace even when it still has active projects, archiving those projects\ntoo. Without it, such a request fails with a 409 and no changes are made.\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteWorkspaceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`dangerously_delete_child_scopes` is not `true` or `false`"
+          },
+          "404": {
+            "description": "Workspace not found"
+          },
+          "409": {
+            "description": "The workspace still has active projects and `dangerously_delete_child_scopes` was not set"
+          }
+        }
+      }
+    },
+    "/v1/orgs/{org_id}/virtual_dataplanes": {
+      "post": {
+        "tags": [
+          "Virtual Dataplanes"
+        ],
+        "operationId": "createVirtualDataplane",
+        "x-cli-name": "create",
+        "x-ts-sdk-name": "create",
+        "summary": "Create a virtual data plane",
+        "description": "Create a virtual data plane in an organization. The parent organization is identified by the\n`org_id` path parameter alone; the `x-hh-org-id` header does not participate. Your\norganization's id is listed on the API keys page of your organization settings in the\nHoneyHive app.\n\nA virtual data plane is a logical tenant boundary hosted on a physical cluster, and several\nof them commonly share one cluster. Workspaces are created inside it.\n\n`cluster_id` is optional, and omitting it is the common case: the new virtual data plane is\nplaced on the same cluster as the organization's existing ones. Two situations require it\nexplicitly, and both return a 400 that says so rather than guessing: an organization whose\nexisting virtual data planes span more than one cluster, and an organization that has none\nyet. Every response includes `cluster_id`, so reading an existing virtual data plane tells\nyou which value to send.\n\nA cluster admits an organization only if your control plane administrator configured it to,\nso a `cluster_id` you can read from a sibling virtual data plane is not necessarily one you\nmay place a new virtual data plane on. A cluster that does not admit this organization\nreturns a 403. When you named the cluster, the fix is a configuration change your\nadministrator makes. When this endpoint inferred the cluster, send an explicit `cluster_id`\nto place the virtual data plane on another cluster.\n\nDeployments differ in who places virtual data planes. Where HoneyHive assigns them to\norganizations automatically, this endpoint returns a 403 for every request and the\nplacement is not yours to make. Deployments whose administrators own the scope tree are\nthe ones this endpoint serves.\n\nThe optional `dataplane_creator` field names the user (by email) who receives the\ndataplane-creator membership on the new virtual data plane. The named user must already be a\nmember of the organization. When omitted, it is created without any membership. The field is\nonly accepted on API-key-initiated requests; user-initiated creation always makes the\ncalling user the creator, so sending the field returns a 400.\n\nThe roles that membership carries come from your organization's role configuration. An\norganization that grants no role on dataplane creation is a supported case: the request\nstill succeeds and the named user receives no access. A 200 response is not by itself\nconfirmation that the named user was granted anything.\n\nA `dataplane_creator` who is already signed in does not see the new virtual data plane\nimmediately. A session captures its scope tree and permission grants when it is created, so\na membership granted afterwards is not reflected in it; the refresh takes effect on their\nnext request to the control plane.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization the virtual data plane is created in"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostVirtualDataplaneRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Virtual data plane created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateVirtualDataplaneResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, an unknown or ineligible `dataplane_creator`, `cluster_id` omitted when it could not be inferred, or the named cluster is disabled"
+          },
+          "403": {
+            "description": "The caller may not create a virtual data plane here: the permission is missing at this organization, the API key's root scope does not contain it, this deployment assigns virtual data planes automatically, or the cluster (named or inferred) does not admit this organization"
+          },
+          "404": {
+            "description": "Organization or cluster not found"
+          }
+        }
+      }
+    },
+    "/v1/virtual_dataplanes/{virtual_dataplane_id}": {
+      "get": {
+        "tags": [
+          "Virtual Dataplanes"
+        ],
+        "operationId": "getVirtualDataplane",
+        "x-cli-name": "get",
+        "x-ts-sdk-name": "get",
+        "summary": "Get a virtual data plane",
+        "description": "Retrieve a single virtual data plane by id. It is identified by the `virtual_dataplane_id`\npath parameter alone; the `x-hh-dataplane-id` header does not participate.\n\nThe returned `name` is the display name. The globally unique slug assigned at creation is\nan internal detail and is not part of this contract. `cluster_id` is the physical cluster\nhosting this virtual data plane, and it is the value to send when creating another one\nbeside it.\n\nReads work on every deployment, including those where HoneyHive assigns virtual data\nplanes automatically and the write endpoints are unavailable.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "virtual_dataplane_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the virtual data plane to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Virtual data plane retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetVirtualDataplaneResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Virtual data plane not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Virtual Dataplanes"
+        ],
+        "operationId": "updateVirtualDataplane",
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Update a virtual data plane",
+        "description": "Update a virtual data plane's display name. It is identified by the `virtual_dataplane_id`\npath parameter alone; the `x-hh-dataplane-id` header does not participate.\n\n`name` is the only field this endpoint changes. `cluster_id` is placement rather than\ndescription: the workspaces and projects inside a virtual data plane hold data on the\ncluster hosting it, so moving one is a migration and not an update. A request that omits\n`name`, or sends the current one, changes nothing.\n\nThis endpoint is unavailable where HoneyHive assigns virtual data planes automatically,\nand returns a 403 there.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "virtual_dataplane_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the virtual data plane to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutVirtualDataplaneRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Virtual data plane updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateVirtualDataplaneResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "403": {
+            "description": "The caller may not update this virtual data plane, or this deployment assigns virtual data planes automatically"
+          },
+          "404": {
+            "description": "Virtual data plane not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Virtual Dataplanes"
+        ],
+        "operationId": "deleteVirtualDataplane",
+        "x-cli-name": "delete",
+        "x-ts-sdk-name": "delete",
+        "summary": "Delete a virtual data plane",
+        "description": "Delete a virtual data plane. It is soft-deleted (archived) and no longer appears in reads;\nthe response returns the archived virtual data plane. It is identified by the\n`virtual_dataplane_id` path parameter alone; the `x-hh-dataplane-id` header does not\nparticipate.\n\n**Deleting a virtual data plane also archives every workspace inside it and every project\ninside those workspaces**, so the events, datasets, and evaluations in them are no longer\nreachable. Because that reaches two levels below the resource named in the URL, a virtual\ndata plane with active workspaces is rejected with a 409 unless the request sets\n`dangerously_delete_child_scopes=true`. Workspaces that were already archived do not count.\n\nThe response describes only the virtual data plane. It does not enumerate what the cascade\narchived, so read that first if you need the list.\n\nThis endpoint is unavailable where HoneyHive assigns virtual data planes automatically,\nand returns a 403 there.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "virtual_dataplane_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the virtual data plane to delete"
+          },
+          {
+            "in": "query",
+            "name": "dangerously_delete_child_scopes",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Archive the virtual data plane even when it still has active workspaces, archiving\nthose workspaces and their projects too. Without it, such a request fails with a 409\nand no changes are made.\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Virtual data plane deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteVirtualDataplaneResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`dangerously_delete_child_scopes` is not `true` or `false`"
+          },
+          "403": {
+            "description": "The caller may not delete this virtual data plane, or this deployment assigns virtual data planes automatically"
+          },
+          "404": {
+            "description": "Virtual data plane not found"
+          },
+          "409": {
+            "description": "The virtual data plane still has active workspaces and `dangerously_delete_child_scopes` was not set"
           }
         }
       }
@@ -1265,6 +1662,315 @@
         ],
         "additionalProperties": false,
         "description": "The deleted (archived) project"
+      },
+      "VirtualDataplaneItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Virtual dataplane display name"
+          },
+          "cluster_id": {
+            "type": "string",
+            "description": "Identifier of the physical cluster hosting this dataplane"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "cluster_id",
+          "created_at",
+          "updated_at"
+        ],
+        "additionalProperties": false,
+        "description": "Virtual dataplane object"
+      },
+      "PostVirtualDataplaneRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Virtual dataplane display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+          },
+          "cluster_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Physical cluster to host this virtual dataplane. Omit to place it alongside the existing virtual dataplanes in this org; required when the org has none yet, or when its virtual dataplanes span more than one cluster."
+          },
+          "dataplane_creator": {
+            "type": "string",
+            "format": "email",
+            "description": "Email of the user to grant the dataplane-creator membership to (API key actors only). A signed-in user does not see the new dataplane until their session refreshes, which happens on their next request to the control plane."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "description": "Request body for creating a virtual dataplane"
+      },
+      "PutVirtualDataplaneRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Virtual dataplane display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for updating a virtual dataplane"
+      },
+      "CreateVirtualDataplaneResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VirtualDataplaneItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The created virtual dataplane"
+      },
+      "GetVirtualDataplaneResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VirtualDataplaneItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "A single virtual dataplane"
+      },
+      "UpdateVirtualDataplaneResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VirtualDataplaneItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The updated virtual dataplane"
+      },
+      "DeleteVirtualDataplaneResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VirtualDataplaneItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The deleted (archived) virtual dataplane. Descendants archived by the cascade are not listed."
+      },
+      "WorkspaceItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Workspace display name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Workspace description"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "created_at"
+        ],
+        "additionalProperties": false,
+        "description": "Workspace object"
+      },
+      "PostWorkspaceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Workspace display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+          },
+          "description": {
+            "type": "string",
+            "description": "Workspace description"
+          },
+          "workspace_creator": {
+            "type": "string",
+            "format": "email",
+            "description": "Email of the user to grant the workspace-creator membership to (API key actors only). A signed-in user does not see the new workspace until their session refreshes, which happens on their next request to the control plane."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "description": "Request body for creating a workspace"
+      },
+      "PutWorkspaceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Workspace display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+          },
+          "description": {
+            "type": "string",
+            "description": "Workspace description"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for updating a workspace"
+      },
+      "CreateWorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The created workspace"
+      },
+      "GetWorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "A single workspace"
+      },
+      "UpdateWorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The updated workspace"
+      },
+      "DeleteWorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The deleted (archived) workspace. Descendants archived by the cascade are not listed."
       },
       "AlertItemThresholdsCritical": {
         "type": "object",

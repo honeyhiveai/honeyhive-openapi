@@ -6,7 +6,7 @@
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
     },
-    "version": "1.7.0"
+    "version": "1.9.0"
   },
   "servers": [
     {
@@ -9532,7 +9532,9 @@
             "additionalProperties": {}
           },
           "workspace_id": {
-            "type": "string"
+            "type": "string",
+            "description": "Deprecated: ignored. The workspace whose provider credentials run the metric is derived from the caller’s authenticated scope.",
+            "deprecated": true
           },
           "feedback": {
             "$ref": "#/components/schemas/RunMetricRequestEventFeedback"
@@ -9759,7 +9761,9 @@
             "additionalProperties": {}
           },
           "workspace_id": {
-            "type": "string"
+            "type": "string",
+            "description": "Deprecated: ignored. The workspace whose provider credentials run the metric is derived from the caller’s authenticated scope.",
+            "deprecated": true
           },
           "feedback": {
             "$ref": "#/components/schemas/LegacyRunMetricRequestEventFeedback"
