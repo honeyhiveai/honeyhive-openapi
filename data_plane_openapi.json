@@ -63,6 +63,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Sessions"
         ],
@@ -98,6 +99,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Sessions"
         ],
@@ -241,6 +243,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Create a new event (deprecated)",
         "description": "Deprecated. Use `POST /v1/events` instead. The legacy route wraps the event object under an `event` key; the v1 route accepts a bare event object.\n",
         "requestBody": {
@@ -281,6 +284,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Update an event (deprecated)",
         "description": "Deprecated. Use `PUT /v1/events/{event_id}` instead.\n",
         "requestBody": {
@@ -496,6 +500,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Retrieve events based on filters (deprecated)",
         "description": "Deprecated. Use `POST /v1/events/search` instead.\n",
         "requestBody": {
@@ -613,6 +618,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Create a new model event (deprecated)",
         "description": "Deprecated. Use `POST /v1/events` with `event_type=\"model\"` instead. The `ModelEvent` schema carries 14 field-level deprecations covering the model-specific fields the generic event route now expresses (`model`, `messages`, `response`, `provider`, `usage`, `cost`, `hyperparameters`, `template`, `template_inputs`, `tools`, `tool_choice`, `response_format`, `duration`, `error`), plus `project` inherited from `LegacyEvent`. The legacy route continues to serve traffic and remaps these fields into `inputs.*` / `outputs.*` before storage.\n",
         "requestBody": {
@@ -652,6 +658,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Create a batch of events (deprecated)",
         "description": "Deprecated. Use `POST /v1/events/batch` instead. The legacy route accepts the deprecated `is_single_session` and `session` aliases and lets per-event objects carry the deprecated `project` field; the v1 route rejects all three at the SDK boundary.\n",
         "requestBody": {
@@ -698,6 +705,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Create a batch of model events (deprecated)",
         "description": "Deprecated. Use `POST /v1/events/batch` with `event_type=\"model\"` on each event instead. Migration notes: the top-level array `model_events` becomes `events`; each element must explicitly set `event_type: \"model\"` (the legacy route sets this server-side); the deprecated top-level aliases `is_single_session` and `session` are not accepted by the v1 route (`PostEventBatchRequest` is `.strict()`); use `single_session` and `session_properties` instead. The legacy route continues to serve traffic and remaps the model-specific fields on each event (`model`, `messages`, `response`, `provider`, `usage`, `cost`, `hyperparameters`, `template`, `template_inputs`, `tools`, `tool_choice`, `response_format`, `duration`, `error`) into `inputs.*` / `outputs.*` before storage.\n",
         "requestBody": {
@@ -980,6 +988,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Update an existing metric (deprecated)",
         "description": "Deprecated. Use `PUT /v1/metrics/{metric_id}` instead.",
         "requestBody": {
@@ -1013,6 +1022,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Delete a metric (deprecated)",
         "description": "Deprecated. Use `DELETE /v1/metrics/{metric_id}` instead.",
         "parameters": [
@@ -1301,6 +1311,7 @@
         ],
         "operationId": "runMetricLegacy",
         "deprecated": true,
+        "x-hidden": true,
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "summary": "Run a metric evaluation (deprecated)",
@@ -1648,6 +1659,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Update a dataset (deprecated)",
         "description": "Deprecated. Use `PUT /v1/datasets/{dataset_id}` instead.",
         "requestBody": {
@@ -1681,6 +1693,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Delete a dataset (deprecated)",
         "description": "Deprecated. Use `DELETE /v1/datasets/{dataset_id}` instead.",
         "parameters": [
@@ -1885,6 +1898,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "description": "Deprecated. Use `DELETE /v1/datasets/{dataset_id}/datapoints/{datapoint_id}` instead.",
         "parameters": [
           {
@@ -1925,6 +1939,7 @@
         "summary": "Get events schema (deprecated)",
         "operationId": "getEventsSchemaLegacy",
         "deprecated": true,
+        "x-hidden": true,
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "tags": [
@@ -2522,6 +2537,7 @@
         "summary": "Retrieve experiment result (deprecated)",
         "operationId": "getExperimentResultLegacy",
         "deprecated": true,
+        "x-hidden": true,
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "tags": [
@@ -2691,6 +2707,7 @@
         "summary": "Retrieve experiment comparison (deprecated)",
         "operationId": "getExperimentComparisonLegacy",
         "deprecated": true,
+        "x-hidden": true,
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "tags": [
@@ -2875,6 +2892,7 @@
         "summary": "Compare events between two experiment runs (deprecated)",
         "operationId": "getExperimentCompareEventsLegacy",
         "deprecated": true,
+        "x-hidden": true,
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "tags": [
@@ -3174,6 +3192,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Configurations"
         ],
@@ -3226,6 +3245,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Configurations"
         ],
@@ -3261,6 +3281,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Configurations"
         ],
@@ -3305,6 +3326,7 @@
         "x-cli-exclude": true,
         "x-ts-sdk-exclude": true,
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Configurations"
         ],
