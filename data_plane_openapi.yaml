@@ -46,6 +46,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       tags:
         - Sessions
       description: |
@@ -70,6 +71,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       tags:
         - Sessions
       description: |
@@ -211,6 +213,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Create a new event (deprecated)
       description: |
         Deprecated. Use `POST /v1/events` instead. The legacy route wraps the event object under an `event` key; the v1 route accepts a bare event object.
@@ -239,6 +242,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Update an event (deprecated)
       description: |
         Deprecated. Use `PUT /v1/events/{event_id}` instead.
@@ -422,6 +426,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Retrieve events based on filters (deprecated)
       description: |
         Deprecated. Use `POST /v1/events/search` instead.
@@ -521,6 +526,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Create a new model event (deprecated)
       description: |
         Deprecated. Use `POST /v1/events` with `event_type="model"` instead. The `ModelEvent` schema carries 14 field-level deprecations covering the model-specific fields the generic event route now expresses (`model`, `messages`, `response`, `provider`, `usage`, `cost`, `hyperparameters`, `template`, `template_inputs`, `tools`, `tool_choice`, `response_format`, `duration`, `error`), plus `project` inherited from `LegacyEvent`. The legacy route continues to serve traffic and remaps these fields into `inputs.*` / `outputs.*` before storage.
@@ -548,6 +554,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Create a batch of events (deprecated)
       description: |
         Deprecated. Use `POST /v1/events/batch` instead. The legacy route accepts the deprecated `is_single_session` and `session` aliases and lets per-event objects carry the deprecated `project` field; the v1 route rejects all three at the SDK boundary.
@@ -580,6 +587,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Create a batch of model events (deprecated)
       description: |
         Deprecated. Use `POST /v1/events/batch` with `event_type="model"` on each event instead. Migration notes: the top-level array `model_events` becomes `events`; each element must explicitly set `event_type: "model"` (the legacy route sets this server-side); the deprecated top-level aliases `is_single_session` and `session` are not accepted by the v1 route (`PostEventBatchRequest` is `.strict()`); use `single_session` and `session_properties` instead. The legacy route continues to serve traffic and remaps the model-specific fields on each event (`model`, `messages`, `response`, `provider`, `usage`, `cost`, `hyperparameters`, `template`, `template_inputs`, `tools`, `tool_choice`, `response_format`, `duration`, `error`) into `inputs.*` / `outputs.*` before storage.
@@ -766,6 +774,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Update an existing metric (deprecated)
       description: Deprecated. Use `PUT /v1/metrics/{metric_id}` instead.
       requestBody:
@@ -788,6 +797,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Delete a metric (deprecated)
       description: Deprecated. Use `DELETE /v1/metrics/{metric_id}` instead.
       parameters:
@@ -976,6 +986,7 @@ paths:
         - Metrics
       operationId: runMetricLegacy
       deprecated: true
+      x-hidden: true
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       summary: Run a metric evaluation (deprecated)
@@ -1206,6 +1217,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Update a dataset (deprecated)
       description: Deprecated. Use `PUT /v1/datasets/{dataset_id}` instead.
       requestBody:
@@ -1228,6 +1240,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       summary: Delete a dataset (deprecated)
       description: Deprecated. Use `DELETE /v1/datasets/{dataset_id}` instead.
       parameters:
@@ -1363,6 +1376,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       description: Deprecated. Use `DELETE /v1/datasets/{dataset_id}/datapoints/{datapoint_id}` instead.
       parameters:
         - in: path
@@ -1389,6 +1403,7 @@ paths:
       summary: Get events schema (deprecated)
       operationId: getEventsSchemaLegacy
       deprecated: true
+      x-hidden: true
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       tags:
@@ -1778,6 +1793,7 @@ paths:
       summary: Retrieve experiment result (deprecated)
       operationId: getExperimentResultLegacy
       deprecated: true
+      x-hidden: true
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       tags:
@@ -1892,6 +1908,7 @@ paths:
       summary: Retrieve experiment comparison (deprecated)
       operationId: getExperimentComparisonLegacy
       deprecated: true
+      x-hidden: true
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       tags:
@@ -2012,6 +2029,7 @@ paths:
       summary: Compare events between two experiment runs (deprecated)
       operationId: getExperimentCompareEventsLegacy
       deprecated: true
+      x-hidden: true
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       tags:
@@ -2213,6 +2231,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       tags:
         - Configurations
       description: List configurations with optional filtering by name, environment, and tags.
@@ -2248,6 +2267,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       tags:
         - Configurations
       description: Create a new LLM or pipeline configuration with provider, parameters, and environment settings.
@@ -2271,6 +2291,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       tags:
         - Configurations
       description: Update an existing configuration's name, provider, parameters, environment, or tags.
@@ -2300,6 +2321,7 @@ paths:
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
+      x-hidden: true
       tags:
         - Configurations
       description: Permanently delete a configuration by its unique identifier.

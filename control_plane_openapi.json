@@ -284,6 +284,9 @@
           },
           "404": {
             "description": "Virtual data plane not found"
+          },
+          "409": {
+            "description": "The `slug` is already taken by another scope"
           }
         }
       }
@@ -651,6 +654,9 @@
           },
           "404": {
             "description": "Organization or cluster not found"
+          },
+          "409": {
+            "description": "The `slug` is already taken by another scope"
           }
         }
       }
@@ -1718,6 +1724,12 @@
             "maxLength": 200,
             "description": "Virtual dataplane display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
           },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Globally unique identifier for the virtual dataplane, letters, digits and underscores only. Omit it and the server derives one from the name with a random suffix appended. A slug already in use returns 409."
+          },
           "cluster_id": {
             "type": "string",
             "minLength": 1,
@@ -1871,6 +1883,12 @@
             "type": "string",
             "maxLength": 200,
             "description": "Workspace display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Globally unique identifier for the workspace, letters, digits and underscores only. Omit it and the server derives one from the name with a random suffix appended. Supply it when the identifier has to match a value maintained outside HoneyHive, such as an identity provider group that grants access to this workspace. A slug already in use returns 409."
           },
           "description": {
             "type": "string",
