@@ -14,7 +14,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.9.0
+  version: 1.10.0
 servers:
   - url: https://api.cp.us.honeyhive.ai
 tags:
