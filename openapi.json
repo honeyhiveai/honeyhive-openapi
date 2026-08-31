@@ -6,7 +6,7 @@
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
     },
-    "version": "1.9.0"
+    "version": "1.10.0"
   },
   "servers": [
     {
@@ -6849,9 +6849,6 @@
           "enabled_in_prod": {
             "type": "boolean"
           },
-          "needs_ground_truth": {
-            "type": "boolean"
-          },
           "sampling_percentage": {
             "type": "number",
             "minimum": 0,
@@ -6919,6 +6916,11 @@
             },
             "minItems": 1
           },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
+          },
           "child_metrics": {
             "type": [
               "array",
@@ -6957,8 +6959,8 @@
           "description",
           "return_type",
           "enabled_in_prod",
-          "needs_ground_truth",
           "sampling_percentage",
+          "needs_ground_truth",
           "filters",
           "id",
           "created_at",
@@ -7001,10 +7003,6 @@
             "default": "float"
           },
           "enabled_in_prod": {
-            "type": "boolean",
-            "default": false
-          },
-          "needs_ground_truth": {
             "type": "boolean",
             "default": false
           },
@@ -7076,6 +7074,11 @@
             },
             "minItems": 1
           },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
+          },
           "child_metrics": {
             "type": [
               "array",
@@ -7138,9 +7141,6 @@
           "enabled_in_prod": {
             "type": "boolean"
           },
-          "needs_ground_truth": {
-            "type": "boolean"
-          },
           "sampling_percentage": {
             "type": "number",
             "minimum": 0,
@@ -7174,6 +7174,11 @@
               "$ref": "#/components/schemas/UpdateMetricRequestCategoriesItem"
             },
             "minItems": 1
+          },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
           },
           "child_metrics": {
             "type": [
@@ -7230,9 +7235,6 @@
             ]
           },
           "enabled_in_prod": {
-            "type": "boolean"
-          },
-          "needs_ground_truth": {
             "type": "boolean"
           },
           "sampling_percentage": {
@@ -7301,6 +7303,11 @@
               "$ref": "#/components/schemas/LegacyUpdateMetricRequestCategoriesItem"
             },
             "minItems": 1
+          },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
           },
           "child_metrics": {
             "type": [
@@ -7512,9 +7519,6 @@
           "enabled_in_prod": {
             "type": "boolean"
           },
-          "needs_ground_truth": {
-            "type": "boolean"
-          },
           "sampling_percentage": {
             "type": "number",
             "minimum": 0,
@@ -7582,6 +7586,11 @@
             },
             "minItems": 1
           },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
+          },
           "child_metrics": {
             "type": [
               "array",
@@ -7605,8 +7614,8 @@
           "description",
           "return_type",
           "enabled_in_prod",
-          "needs_ground_truth",
           "sampling_percentage",
+          "needs_ground_truth",
           "filters"
         ],
         "additionalProperties": false,
@@ -7652,11 +7661,6 @@
             "type": "boolean",
             "default": false,
             "description": "Whether this version should run against production traffic. Defaults to `false` for non-HUMAN metrics and `true` for HUMAN metrics."
-          },
-          "needs_ground_truth": {
-            "type": "boolean",
-            "default": false,
-            "description": "Whether this metric requires ground-truth labels to evaluate. Defaults to `false`."
           },
           "sampling_percentage": {
             "type": "number",
@@ -7727,6 +7731,11 @@
             },
             "minItems": 1
           },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
+          },
           "child_metrics": {
             "type": [
               "array",
@@ -7749,7 +7758,7 @@
           "criteria"
         ],
         "additionalProperties": false,
-        "description": "Metric definition snapshot accepted by POST /v1/metrics/{metric_id}/versions.\nSix fields are optional and fall back to server-side defaults when omitted:\n- `description` → `\"\"`\n- `return_type` → `\"float\"`\n- `enabled_in_prod` → `true` for HUMAN metrics, `false` otherwise\n- `needs_ground_truth` → `false`\n- `sampling_percentage` → `10`\n- `filters` → `{ \"filterArray\": [] }`"
+        "description": "Metric definition snapshot accepted by POST /v1/metrics/{metric_id}/versions.\nFive fields are optional and fall back to server-side defaults when omitted:\n- `description` → `\"\"`\n- `return_type` → `\"float\"`\n- `enabled_in_prod` → `true` for HUMAN metrics, `false` otherwise\n- `sampling_percentage` → `10`\n- `filters` → `{ \"filterArray\": [] }`"
       },
       "MetricVersion": {
         "type": "object",
@@ -9434,10 +9443,6 @@
             "type": "boolean",
             "default": false
           },
-          "needs_ground_truth": {
-            "type": "boolean",
-            "default": false
-          },
           "sampling_percentage": {
             "type": "number",
             "minimum": 0,
@@ -9505,6 +9510,11 @@
               "$ref": "#/components/schemas/RunMetricRequestMetricCategoriesItem"
             },
             "minItems": 1
+          },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
           },
           "child_metrics": {
             "type": [
@@ -9663,10 +9673,6 @@
             "type": "boolean",
             "default": false
           },
-          "needs_ground_truth": {
-            "type": "boolean",
-            "default": false
-          },
           "sampling_percentage": {
             "type": "number",
             "minimum": 0,
@@ -9734,6 +9740,11 @@
               "$ref": "#/components/schemas/LegacyRunMetricRequestMetricCategoriesItem"
             },
             "minItems": 1
+          },
+          "needs_ground_truth": {
+            "type": "boolean",
+            "description": "Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.",
+            "deprecated": true
           },
           "child_metrics": {
             "type": [

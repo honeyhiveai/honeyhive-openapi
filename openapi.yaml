@@ -4,7 +4,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.9.0
+  version: 1.10.0
 servers:
   - url: https://api.dp1.us.honeyhive.ai
 tags:
@@ -4805,8 +4805,6 @@ components:
             - categorical
         enabled_in_prod:
           type: boolean
-        needs_ground_truth:
-          type: boolean
         sampling_percentage:
           type: number
           minimum: 0
@@ -4851,6 +4849,10 @@ components:
           items:
             $ref: '#/components/schemas/MetricItemCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -4880,8 +4882,8 @@ components:
         - description
         - return_type
         - enabled_in_prod
-        - needs_ground_truth
         - sampling_percentage
+        - needs_ground_truth
         - filters
         - id
         - created_at
@@ -4915,9 +4917,6 @@ components:
             - categorical
           default: float
         enabled_in_prod:
-          type: boolean
-          default: false
-        needs_ground_truth:
           type: boolean
           default: false
         sampling_percentage:
@@ -4965,6 +4964,10 @@ components:
           items:
             $ref: '#/components/schemas/CreateMetricRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5011,8 +5014,6 @@ components:
             - categorical
         enabled_in_prod:
           type: boolean
-        needs_ground_truth:
-          type: boolean
         sampling_percentage:
           type: number
           minimum: 0
@@ -5037,6 +5038,10 @@ components:
           items:
             $ref: '#/components/schemas/UpdateMetricRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5078,8 +5083,6 @@ components:
             - string
             - categorical
         enabled_in_prod:
-          type: boolean
-        needs_ground_truth:
           type: boolean
         sampling_percentage:
           type: number
@@ -5125,6 +5128,10 @@ components:
           items:
             $ref: '#/components/schemas/LegacyUpdateMetricRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5269,8 +5276,6 @@ components:
             - categorical
         enabled_in_prod:
           type: boolean
-        needs_ground_truth:
-          type: boolean
         sampling_percentage:
           type: number
           minimum: 0
@@ -5315,6 +5320,10 @@ components:
           items:
             $ref: '#/components/schemas/MetricVersionContentCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5333,8 +5342,8 @@ components:
         - description
         - return_type
         - enabled_in_prod
-        - needs_ground_truth
         - sampling_percentage
+        - needs_ground_truth
         - filters
       additionalProperties: false
       description: Versioned snapshot of a metric definition.
@@ -5371,10 +5380,6 @@ components:
           type: boolean
           default: false
           description: Whether this version should run against production traffic. Defaults to `false` for non-HUMAN metrics and `true` for HUMAN metrics.
-        needs_ground_truth:
-          type: boolean
-          default: false
-          description: Whether this metric requires ground-truth labels to evaluate. Defaults to `false`.
         sampling_percentage:
           type: number
           minimum: 0
@@ -5421,6 +5426,10 @@ components:
           items:
             $ref: '#/components/schemas/MetricVersionContentRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5439,11 +5448,10 @@ components:
       additionalProperties: false
       description: |-
         Metric definition snapshot accepted by POST /v1/metrics/{metric_id}/versions.
-        Six fields are optional and fall back to server-side defaults when omitted:
+        Five fields are optional and fall back to server-side defaults when omitted:
         - `description` → `""`
         - `return_type` → `"float"`
         - `enabled_in_prod` → `true` for HUMAN metrics, `false` otherwise
-        - `needs_ground_truth` → `false`
         - `sampling_percentage` → `10`
         - `filters` → `{ "filterArray": [] }`
     MetricVersion:
@@ -6628,9 +6636,6 @@ components:
         enabled_in_prod:
           type: boolean
           default: false
-        needs_ground_truth:
-          type: boolean
-          default: false
         sampling_percentage:
           type: number
           minimum: 0
@@ -6676,6 +6681,10 @@ components:
           items:
             $ref: '#/components/schemas/RunMetricRequestMetricCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -6789,9 +6798,6 @@ components:
         enabled_in_prod:
           type: boolean
           default: false
-        needs_ground_truth:
-          type: boolean
-          default: false
         sampling_percentage:
           type: number
           minimum: 0
@@ -6837,6 +6843,10 @@ components:
           items:
             $ref: '#/components/schemas/LegacyRunMetricRequestMetricCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
