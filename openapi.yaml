@@ -4,7 +4,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.9.0
+  version: 1.13.0
 servers:
   - url: https://api.dp1.us.honeyhive.ai
 tags:
@@ -43,6 +43,8 @@ paths:
     post:
       summary: Start a new session (deprecated)
       operationId: startSessionLegacy
+      security:
+        - IngestionApiKey: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -68,6 +70,8 @@ paths:
     post:
       summary: Add traces to a session (deprecated)
       operationId: addSessionTracesLegacy
+      security:
+        - IngestionApiKey: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -104,6 +108,8 @@ paths:
       tags:
         - Sessions
       operationId: createSession
+      security:
+        - IngestionApiKey: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Start a new session
@@ -165,6 +171,8 @@ paths:
       tags:
         - Sessions
       operationId: createSessionEventBatch
+      security:
+        - IngestionApiKey: []
       x-cli-name: create-event-batch
       x-ts-sdk-name: createEventBatch
       summary: Add a batch of events to a session
@@ -210,6 +218,8 @@ paths:
       tags:
         - Events
       operationId: createEventLegacy
+      security:
+        - IngestionApiKey: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -239,6 +249,8 @@ paths:
       tags:
         - Events
       operationId: updateEventLegacy
+      security:
+        - IngestionApiKey: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -283,6 +295,8 @@ paths:
       tags:
         - Events
       operationId: createEvent
+      security:
+        - IngestionApiKey: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create a new event
@@ -343,6 +357,8 @@ paths:
       tags:
         - Events
       operationId: getEvent
+      security:
+        - BearerAuth: []
       x-cli-name: get
       x-ts-sdk-name: get
       summary: Get an event by ID
@@ -372,6 +388,8 @@ paths:
       tags:
         - Events
       operationId: updateEvent
+      security:
+        - IngestionApiKey: []
       x-cli-name: update
       x-ts-sdk-name: update
       summary: Update an event
@@ -423,6 +441,8 @@ paths:
       tags:
         - Events
       operationId: exportEventsLegacy
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -448,6 +468,8 @@ paths:
       tags:
         - Events
       operationId: searchEvents
+      security:
+        - BearerAuth: []
       x-cli-name: search
       x-ts-sdk-name: search
       summary: Retrieve events based on filters
@@ -471,6 +493,8 @@ paths:
       tags:
         - Events
       operationId: createEventBatch
+      security:
+        - IngestionApiKey: []
       x-cli-name: create-batch
       x-ts-sdk-name: createBatch
       summary: Create a batch of events
@@ -523,6 +547,8 @@ paths:
       tags:
         - Events
       operationId: createModelEventLegacy
+      security:
+        - IngestionApiKey: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -551,6 +577,8 @@ paths:
       tags:
         - Events
       operationId: createEventBatchLegacy
+      security:
+        - IngestionApiKey: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -584,6 +612,8 @@ paths:
       tags:
         - Events
       operationId: createModelEventBatchLegacy
+      security:
+        - IngestionApiKey: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -615,11 +645,17 @@ paths:
     get:
       tags:
         - Charts
-      operationId: getCharts
+      operationId: getChartsLegacy
+      security:
+        - BearerAuth: []
+      deprecated: true
+      x-twin:
+        op: getCharts
+        discriminator: project_id
       x-cli-name: list
       x-ts-sdk-name: list
-      summary: List charts
-      description: Retrieve all charts in the current scope.
+      summary: List charts (deprecated)
+      description: Deprecated. Use `GET /v1/projects/{project_id}/charts` with a data plane API key instead. Retrieves all charts in the current scope.
       responses:
         '200':
           description: Charts retrieved successfully
@@ -630,10 +666,17 @@ paths:
     post:
       tags:
         - Charts
-      operationId: createChart
+      operationId: createChartLegacy
+      security:
+        - BearerAuth: []
+      deprecated: true
+      x-twin:
+        op: createChart
+        discriminator: project_id
       x-cli-name: create
       x-ts-sdk-name: create
-      summary: Create a new chart
+      summary: Create a new chart (deprecated)
+      description: Deprecated. Use `POST /v1/projects/{project_id}/charts` with a data plane API key instead.
       requestBody:
         required: true
         content:
@@ -651,11 +694,17 @@ paths:
     get:
       tags:
         - Charts
-      operationId: getChart
+      operationId: getChartLegacy
+      security:
+        - BearerAuth: []
+      deprecated: true
+      x-twin:
+        op: getChart
+        discriminator: project_id
       x-cli-name: get
       x-ts-sdk-name: get
-      summary: Get a chart
-      description: Retrieve a single chart by id.
+      summary: Get a chart (deprecated)
+      description: Deprecated. Use `GET /v1/projects/{project_id}/charts/{chart_id}` with a data plane API key instead. Retrieves a single chart by id.
       parameters:
         - in: path
           name: chart_id
@@ -673,11 +722,17 @@ paths:
     put:
       tags:
         - Charts
-      operationId: updateChart
+      operationId: updateChartLegacy
+      security:
+        - BearerAuth: []
+      deprecated: true
+      x-twin:
+        op: updateChart
+        discriminator: project_id
       x-cli-name: update
       x-ts-sdk-name: update
-      summary: Update a chart
-      description: Update a chart's editable fields. Only fields included in the request body are modified.
+      summary: Update a chart (deprecated)
+      description: Deprecated. Use `PATCH /v1/projects/{project_id}/charts/{chart_id}` with a data plane API key instead. Updates a chart's editable fields. Only fields included in the request body are modified.
       parameters:
         - in: path
           name: chart_id
@@ -701,11 +756,170 @@ paths:
     delete:
       tags:
         - Charts
+      operationId: deleteChartLegacy
+      security:
+        - BearerAuth: []
+      deprecated: true
+      x-twin:
+        op: deleteChart
+        discriminator: project_id
+      x-cli-name: delete
+      x-ts-sdk-name: delete
+      summary: Delete a chart (deprecated)
+      description: Deprecated. Use `DELETE /v1/projects/{project_id}/charts/{chart_id}` with a data plane API key instead.
+      parameters:
+        - in: path
+          name: chart_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the chart to delete
+      responses:
+        '200':
+          description: Chart deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteChartResponse'
+  /v1/projects/{project_id}/charts:
+    get:
+      tags:
+        - Charts
+      operationId: getCharts
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: list
+      x-ts-sdk-name: list
+      summary: List charts
+      description: Retrieve all charts in a project.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project whose charts are listed
+      responses:
+        '200':
+          description: Charts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetChartsResponse'
+    post:
+      tags:
+        - Charts
+      operationId: createChart
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: create
+      x-ts-sdk-name: create
+      summary: Create a new chart
+      description: Create a chart in a project.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project the chart is created in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChartRequest'
+      responses:
+        '200':
+          description: Chart created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateChartResponse'
+  /v1/projects/{project_id}/charts/{chart_id}:
+    get:
+      tags:
+        - Charts
+      operationId: getChart
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: get
+      x-ts-sdk-name: get
+      summary: Get a chart
+      description: Retrieve a single chart by id.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project that owns the chart
+        - in: path
+          name: chart_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the chart to retrieve
+      responses:
+        '200':
+          description: Chart retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetChartResponse'
+    patch:
+      tags:
+        - Charts
+      operationId: updateChart
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: update
+      x-ts-sdk-name: update
+      summary: Update a chart
+      description: Update a chart's editable fields. Only fields included in the request body are modified.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project that owns the chart
+        - in: path
+          name: chart_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the chart to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateChartRequest'
+      responses:
+        '200':
+          description: Chart updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateChartResponse'
+    delete:
+      tags:
+        - Charts
       operationId: deleteChart
+      security:
+        - DataPlaneApiKey: []
       x-cli-name: delete
       x-ts-sdk-name: delete
       summary: Delete a chart
+      description: Delete a chart from a project, removing it from the project's dashboards.
       parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project that owns the chart
         - in: path
           name: chart_id
           required: true
@@ -724,6 +938,8 @@ paths:
       tags:
         - Metrics
       operationId: getMetrics
+      security:
+        - BearerAuth: []
       x-cli-name: list
       x-ts-sdk-name: list
       summary: List all metrics
@@ -751,6 +967,8 @@ paths:
       tags:
         - Metrics
       operationId: createMetric
+      security:
+        - BearerAuth: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create a new metric
@@ -771,6 +989,8 @@ paths:
       tags:
         - Metrics
       operationId: updateMetricLegacy
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -794,6 +1014,8 @@ paths:
       tags:
         - Metrics
       operationId: deleteMetricLegacy
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -819,6 +1041,8 @@ paths:
       tags:
         - Metrics
       operationId: updateMetric
+      security:
+        - BearerAuth: []
       x-cli-name: update
       x-ts-sdk-name: update
       summary: Update an existing metric
@@ -847,6 +1071,8 @@ paths:
       tags:
         - Metrics
       operationId: deleteMetric
+      security:
+        - BearerAuth: []
       x-cli-name: delete
       x-ts-sdk-name: delete
       summary: Delete a metric
@@ -869,6 +1095,8 @@ paths:
       tags:
         - Metric Versions
       operationId: getMetricVersions
+      security:
+        - BearerAuth: []
       x-cli-name: list
       x-ts-sdk-name: list
       summary: List versions for a metric
@@ -893,6 +1121,8 @@ paths:
       tags:
         - Metric Versions
       operationId: createMetricVersion
+      security:
+        - BearerAuth: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create a new metric version
@@ -926,6 +1156,8 @@ paths:
       tags:
         - Metric Versions
       operationId: deployMetricVersion
+      security:
+        - BearerAuth: []
       x-cli-name: deploy
       x-ts-sdk-name: deploy
       summary: Deploy a specific metric version
@@ -957,6 +1189,8 @@ paths:
       tags:
         - Metrics
       operationId: runMetric
+      security:
+        - BearerAuth: []
       x-cli-name: run
       x-ts-sdk-name: run
       summary: Run a metric evaluation
@@ -985,6 +1219,8 @@ paths:
       tags:
         - Metrics
       operationId: runMetricLegacy
+      security:
+        - BearerAuth: []
       deprecated: true
       x-hidden: true
       x-cli-exclude: true
@@ -1014,6 +1250,8 @@ paths:
     get:
       summary: Retrieve a list of datapoints
       operationId: getDatapoints
+      security:
+        - BearerAuth: []
       x-cli-name: list
       x-ts-sdk-name: list
       tags:
@@ -1045,6 +1283,8 @@ paths:
     post:
       summary: Create a new datapoint
       operationId: createDatapoint
+      security:
+        - BearerAuth: []
       x-cli-name: create
       x-ts-sdk-name: create
       tags:
@@ -1067,6 +1307,8 @@ paths:
     post:
       summary: Create multiple datapoints in batch
       operationId: batchCreateDatapoints
+      security:
+        - BearerAuth: []
       x-cli-name: create-batch
       x-ts-sdk-name: createBatch
       tags:
@@ -1089,6 +1331,8 @@ paths:
     get:
       summary: Retrieve a specific datapoint
       operationId: getDatapoint
+      security:
+        - BearerAuth: []
       x-cli-name: get
       x-ts-sdk-name: get
       tags:
@@ -1119,6 +1363,8 @@ paths:
             type: string
           description: ID of datapoint to update
       operationId: updateDatapoint
+      security:
+        - BearerAuth: []
       x-cli-name: update
       x-ts-sdk-name: update
       tags:
@@ -1141,6 +1387,8 @@ paths:
     delete:
       summary: Delete a specific datapoint
       operationId: deleteDatapoint
+      security:
+        - BearerAuth: []
       x-cli-name: delete
       x-ts-sdk-name: delete
       tags:
@@ -1166,6 +1414,8 @@ paths:
         - Datasets
       summary: Get datasets
       operationId: getDatasets
+      security:
+        - BearerAuth: []
       x-cli-name: list
       x-ts-sdk-name: list
       description: Retrieve datasets, optionally filtered by dataset ID or name.
@@ -1193,6 +1443,8 @@ paths:
       tags:
         - Datasets
       operationId: createDataset
+      security:
+        - BearerAuth: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create a dataset
@@ -1214,6 +1466,8 @@ paths:
       tags:
         - Datasets
       operationId: updateDatasetLegacy
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -1237,6 +1491,8 @@ paths:
       tags:
         - Datasets
       operationId: deleteDatasetLegacy
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -1262,6 +1518,8 @@ paths:
       tags:
         - Datasets
       operationId: updateDataset
+      security:
+        - BearerAuth: []
       x-cli-name: update
       x-ts-sdk-name: update
       summary: Update a dataset
@@ -1290,6 +1548,8 @@ paths:
       tags:
         - Datasets
       operationId: deleteDataset
+      security:
+        - BearerAuth: []
       x-cli-name: delete
       x-ts-sdk-name: delete
       summary: Delete a dataset
@@ -1314,6 +1574,8 @@ paths:
         - Datasets
       summary: Add datapoints to a dataset
       operationId: addDatapoints
+      security:
+        - BearerAuth: []
       x-cli-name: add-datapoints
       x-ts-sdk-name: addDatapoints
       description: |
@@ -1344,6 +1606,8 @@ paths:
         - Datasets
       summary: Remove a datapoint from a dataset
       operationId: removeDatapoint
+      security:
+        - BearerAuth: []
       x-cli-name: remove-datapoint
       x-ts-sdk-name: removeDatapoint
       description: Remove a specific datapoint from a dataset. The datapoint itself is not deleted, only dereferenced from the dataset.
@@ -1373,6 +1637,8 @@ paths:
         - Datasets
       summary: Remove a datapoint from a dataset (deprecated)
       operationId: removeDatapointLegacy
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -1402,6 +1668,8 @@ paths:
     get:
       summary: Get events schema (deprecated)
       operationId: getEventsSchemaLegacy
+      security:
+        - BearerAuth: []
       deprecated: true
       x-hidden: true
       x-cli-exclude: true
@@ -1435,6 +1703,8 @@ paths:
     post:
       summary: Create a new evaluation run
       operationId: createRun
+      security:
+        - BearerAuth: []
       x-cli-name: create-run
       x-ts-sdk-name: createRun
       tags:
@@ -1458,6 +1728,8 @@ paths:
     get:
       summary: Get a list of evaluation runs
       operationId: getRuns
+      security:
+        - BearerAuth: []
       x-cli-name: list-runs
       x-ts-sdk-name: listRuns
       tags:
@@ -1557,6 +1829,8 @@ paths:
     get:
       summary: Get events schema across all experiment runs in a project
       operationId: getRunsSchema
+      security:
+        - BearerAuth: []
       x-cli-name: get-runs-schema
       x-ts-sdk-name: getRunsSchema
       tags:
@@ -1584,6 +1858,8 @@ paths:
     get:
       summary: Get details of an evaluation run
       operationId: getRun
+      security:
+        - BearerAuth: []
       x-cli-name: get-run
       x-ts-sdk-name: getRun
       tags:
@@ -1608,6 +1884,8 @@ paths:
     put:
       summary: Update an evaluation run
       operationId: updateRun
+      security:
+        - BearerAuth: []
       x-cli-name: update-run
       x-ts-sdk-name: updateRun
       tags:
@@ -1638,6 +1916,8 @@ paths:
     delete:
       summary: Delete an evaluation run
       operationId: deleteRun
+      security:
+        - BearerAuth: []
       x-cli-name: delete-run
       x-ts-sdk-name: deleteRun
       tags:
@@ -1663,6 +1943,8 @@ paths:
     get:
       summary: Get events schema for a single experiment run
       operationId: getRunSchema
+      security:
+        - BearerAuth: []
       x-cli-name: get-run-schema
       x-ts-sdk-name: getRunSchema
       tags:
@@ -1697,6 +1979,8 @@ paths:
     get:
       summary: Get event metrics for an experiment run
       operationId: getExperimentRunMetrics
+      security:
+        - BearerAuth: []
       x-cli-name: get-run-metrics
       x-ts-sdk-name: getRunMetrics
       tags:
@@ -1739,6 +2023,8 @@ paths:
     get:
       summary: Retrieve experiment summary
       operationId: getExperimentSummary
+      security:
+        - BearerAuth: []
       x-cli-name: get-summary
       x-ts-sdk-name: getSummary
       tags:
@@ -1792,6 +2078,8 @@ paths:
     get:
       summary: Retrieve experiment result (deprecated)
       operationId: getExperimentResultLegacy
+      security:
+        - BearerAuth: []
       deprecated: true
       x-hidden: true
       x-cli-exclude: true
@@ -1847,6 +2135,8 @@ paths:
     get:
       summary: Retrieve experiment comparison
       operationId: getExperimentComparison
+      security:
+        - BearerAuth: []
       x-cli-name: compare-runs
       x-ts-sdk-name: compareRuns
       tags:
@@ -1907,6 +2197,8 @@ paths:
     get:
       summary: Retrieve experiment comparison (deprecated)
       operationId: getExperimentComparisonLegacy
+      security:
+        - BearerAuth: []
       deprecated: true
       x-hidden: true
       x-cli-exclude: true
@@ -1958,6 +2250,8 @@ paths:
     get:
       summary: Compare events between two experiment runs
       operationId: getExperimentCompareEvents
+      security:
+        - BearerAuth: []
       x-cli-name: compare-run-events
       x-ts-sdk-name: compareRunEvents
       tags:
@@ -2028,6 +2322,8 @@ paths:
     get:
       summary: Compare events between two experiment runs (deprecated)
       operationId: getExperimentCompareEventsLegacy
+      security:
+        - BearerAuth: []
       deprecated: true
       x-hidden: true
       x-cli-exclude: true
@@ -2101,6 +2397,8 @@ paths:
       tags:
         - Queues
       operationId: getQueues
+      security:
+        - BearerAuth: []
       x-ts-sdk-exclude: true
       x-cli-exclude: true
       summary: List annotation queues
@@ -2124,6 +2422,8 @@ paths:
       tags:
         - Queues
       operationId: createQueue
+      security:
+        - BearerAuth: []
       x-ts-sdk-exclude: true
       x-cli-exclude: true
       summary: Create an annotation queue
@@ -2149,6 +2449,8 @@ paths:
       tags:
         - Queues
       operationId: getQueue
+      security:
+        - BearerAuth: []
       x-ts-sdk-exclude: true
       x-cli-exclude: true
       summary: Get an annotation queue
@@ -2173,6 +2475,8 @@ paths:
       tags:
         - Queues
       operationId: updateQueue
+      security:
+        - BearerAuth: []
       x-ts-sdk-exclude: true
       x-cli-exclude: true
       summary: Update an annotation queue
@@ -2204,6 +2508,8 @@ paths:
       tags:
         - Queues
       operationId: deleteQueue
+      security:
+        - BearerAuth: []
       x-ts-sdk-exclude: true
       x-cli-exclude: true
       summary: Delete an annotation queue
@@ -2228,6 +2534,8 @@ paths:
     get:
       summary: Retrieve a list of configurations
       operationId: getConfigurations
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -2264,6 +2572,8 @@ paths:
     post:
       summary: Create a new configuration
       operationId: createConfiguration
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -2288,6 +2598,8 @@ paths:
     put:
       summary: Update an existing configuration
       operationId: updateConfiguration
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -2318,6 +2630,8 @@ paths:
     delete:
       summary: Delete a configuration
       operationId: deleteConfiguration
+      security:
+        - BearerAuth: []
       x-cli-exclude: true
       x-ts-sdk-exclude: true
       deprecated: true
@@ -2344,6 +2658,14 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
+    IngestionApiKey:
+      type: http
+      scheme: bearer
+      description: An Ingestion API Key (values begin with `hh_ingst_`). Scoped to a single project and accepted only by the ingestion endpoints; every other Data Plane operation refuses it. Create one in the HoneyHive app under the project's **Settings → API Keys**, on the **Ingestion** tab.
+    DataPlaneApiKey:
+      type: http
+      scheme: bearer
+      description: A fine-grained data plane API key (values begin with `hh_fgdp_`). Rooted at an organization, workspace, or project, it carries the permissions chosen when it was created, and only the operations whose paths begin with `/v1/projects/{project_id}/` accept it. Create one in the HoneyHive app under the project's, workspace's, or organization's **Settings → API Keys**, on the **Data Plane** tab.
   schemas:
     SingleFilter:
       type: object
@@ -2437,10 +2759,12 @@ components:
           type: string
           enum:
             - minute
+            - five_minute
             - hour
             - day
             - week
             - month
+            - auto
           default: day
           description: Time bucket granularity for aggregation
         dateRange:
@@ -2577,10 +2901,12 @@ components:
           type: string
           enum:
             - minute
+            - five_minute
             - hour
             - day
             - week
             - month
+            - auto
           description: Time bucket granularity for aggregation
         dateRange:
           anyOf:
@@ -4805,8 +5131,6 @@ components:
             - categorical
         enabled_in_prod:
           type: boolean
-        needs_ground_truth:
-          type: boolean
         sampling_percentage:
           type: number
           minimum: 0
@@ -4851,6 +5175,10 @@ components:
           items:
             $ref: '#/components/schemas/MetricItemCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -4880,8 +5208,8 @@ components:
         - description
         - return_type
         - enabled_in_prod
-        - needs_ground_truth
         - sampling_percentage
+        - needs_ground_truth
         - filters
         - id
         - created_at
@@ -4915,9 +5243,6 @@ components:
             - categorical
           default: float
         enabled_in_prod:
-          type: boolean
-          default: false
-        needs_ground_truth:
           type: boolean
           default: false
         sampling_percentage:
@@ -4965,6 +5290,10 @@ components:
           items:
             $ref: '#/components/schemas/CreateMetricRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5011,8 +5340,6 @@ components:
             - categorical
         enabled_in_prod:
           type: boolean
-        needs_ground_truth:
-          type: boolean
         sampling_percentage:
           type: number
           minimum: 0
@@ -5037,6 +5364,10 @@ components:
           items:
             $ref: '#/components/schemas/UpdateMetricRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5078,8 +5409,6 @@ components:
             - string
             - categorical
         enabled_in_prod:
-          type: boolean
-        needs_ground_truth:
           type: boolean
         sampling_percentage:
           type: number
@@ -5125,6 +5454,10 @@ components:
           items:
             $ref: '#/components/schemas/LegacyUpdateMetricRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5269,8 +5602,6 @@ components:
             - categorical
         enabled_in_prod:
           type: boolean
-        needs_ground_truth:
-          type: boolean
         sampling_percentage:
           type: number
           minimum: 0
@@ -5315,6 +5646,10 @@ components:
           items:
             $ref: '#/components/schemas/MetricVersionContentCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5333,8 +5668,8 @@ components:
         - description
         - return_type
         - enabled_in_prod
-        - needs_ground_truth
         - sampling_percentage
+        - needs_ground_truth
         - filters
       additionalProperties: false
       description: Versioned snapshot of a metric definition.
@@ -5371,10 +5706,6 @@ components:
           type: boolean
           default: false
           description: Whether this version should run against production traffic. Defaults to `false` for non-HUMAN metrics and `true` for HUMAN metrics.
-        needs_ground_truth:
-          type: boolean
-          default: false
-          description: Whether this metric requires ground-truth labels to evaluate. Defaults to `false`.
         sampling_percentage:
           type: number
           minimum: 0
@@ -5421,6 +5752,10 @@ components:
           items:
             $ref: '#/components/schemas/MetricVersionContentRequestCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -5439,11 +5774,10 @@ components:
       additionalProperties: false
       description: |-
         Metric definition snapshot accepted by POST /v1/metrics/{metric_id}/versions.
-        Six fields are optional and fall back to server-side defaults when omitted:
+        Five fields are optional and fall back to server-side defaults when omitted:
         - `description` → `""`
         - `return_type` → `"float"`
         - `enabled_in_prod` → `true` for HUMAN metrics, `false` otherwise
-        - `needs_ground_truth` → `false`
         - `sampling_percentage` → `10`
         - `filters` → `{ "filterArray": [] }`
     MetricVersion:
@@ -6628,9 +6962,6 @@ components:
         enabled_in_prod:
           type: boolean
           default: false
-        needs_ground_truth:
-          type: boolean
-          default: false
         sampling_percentage:
           type: number
           minimum: 0
@@ -6676,6 +7007,10 @@ components:
           items:
             $ref: '#/components/schemas/RunMetricRequestMetricCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -6789,9 +7124,6 @@ components:
         enabled_in_prod:
           type: boolean
           default: false
-        needs_ground_truth:
-          type: boolean
-          default: false
         sampling_percentage:
           type: number
           minimum: 0
@@ -6837,6 +7169,10 @@ components:
           items:
             $ref: '#/components/schemas/LegacyRunMetricRequestMetricCategoriesItem'
           minItems: 1
+        needs_ground_truth:
+          type: boolean
+          description: Deprecated and ignored. Ground-truth use is inferred from the evaluator definition.
+          deprecated: true
         child_metrics:
           type:
             - array
@@ -7257,5 +7593,3 @@ components:
           oneOf:
             - type: string
             - type: number
-security:
-  - BearerAuth: []
