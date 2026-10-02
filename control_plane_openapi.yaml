@@ -14,7 +14,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.9.0
+  version: 1.13.0
 servers:
   - url: https://api.cp.us.honeyhive.ai
 tags:
@@ -36,6 +36,8 @@ paths:
       tags:
         - Alerts
       operationId: listAlerts
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: list
       x-ts-sdk-name: list
       summary: List alerts
@@ -115,6 +117,8 @@ paths:
       tags:
         - Alerts
       operationId: createAlert
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create an alert
@@ -153,6 +157,8 @@ paths:
       tags:
         - Alerts
       operationId: getAlert
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: get
       x-ts-sdk-name: get
       summary: Get an alert
@@ -187,6 +193,8 @@ paths:
       tags:
         - Workspaces
       operationId: createWorkspace
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create a workspace
@@ -247,6 +255,8 @@ paths:
       tags:
         - Projects
       operationId: createProject
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create a project
@@ -300,6 +310,8 @@ paths:
       tags:
         - Projects
       operationId: getProject
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: get
       x-ts-sdk-name: get
       summary: Get a project
@@ -326,6 +338,8 @@ paths:
       tags:
         - Projects
       operationId: updateProject
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: update
       x-ts-sdk-name: update
       summary: Update a project
@@ -361,6 +375,8 @@ paths:
       tags:
         - Projects
       operationId: deleteProject
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: delete
       x-ts-sdk-name: delete
       summary: Delete a project
@@ -389,6 +405,8 @@ paths:
       tags:
         - Workspaces
       operationId: getWorkspace
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: get
       x-ts-sdk-name: get
       summary: Get a workspace
@@ -418,6 +436,8 @@ paths:
       tags:
         - Workspaces
       operationId: updateWorkspace
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: update
       x-ts-sdk-name: update
       summary: Update a workspace
@@ -455,6 +475,8 @@ paths:
       tags:
         - Workspaces
       operationId: deleteWorkspace
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: delete
       x-ts-sdk-name: delete
       summary: Delete a workspace
@@ -506,6 +528,8 @@ paths:
       tags:
         - Virtual Dataplanes
       operationId: createVirtualDataplane
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: create
       x-ts-sdk-name: create
       summary: Create a virtual data plane
@@ -528,12 +552,11 @@ paths:
         A cluster admits an organization only if your control plane administrator configured it to,
         so a `cluster_id` you can read from a sibling virtual data plane is not necessarily one you
         may place a new virtual data plane on. A cluster that does not admit this organization
-        returns a 403. When you named the cluster, the fix is a configuration change your
-        administrator makes. When this endpoint inferred the cluster, send an explicit `cluster_id`
-        to place the virtual data plane on another cluster.
+        returns a 404. When this endpoint inferred the cluster, send an explicit `cluster_id` to
+        place the virtual data plane on another cluster.
 
         Deployments differ in who places virtual data planes. Where HoneyHive assigns them to
-        organizations automatically, this endpoint returns a 403 for every request and the
+        organizations automatically, this endpoint returns a 404 for every request and the
         placement is not yours to make. Deployments whose administrators own the scope tree are
         the ones this endpoint serves.
 
@@ -574,10 +597,8 @@ paths:
                 $ref: '#/components/schemas/CreateVirtualDataplaneResponse'
         '400':
           description: Invalid request body, an unknown or ineligible `dataplane_creator`, `cluster_id` omitted when it could not be inferred, or the named cluster is disabled
-        '403':
-          description: "The caller may not create a virtual data plane here: the permission is missing at this organization, the API key's root scope does not contain it, this deployment assigns virtual data planes automatically, or the cluster (named or inferred) does not admit this organization"
         '404':
-          description: Organization or cluster not found
+          description: Organization or cluster not found, or the caller may not create a virtual data plane here. The response does not say which.
         '409':
           description: The `slug` is already taken by another scope
   /v1/virtual_dataplanes/{virtual_dataplane_id}:
@@ -585,6 +606,8 @@ paths:
       tags:
         - Virtual Dataplanes
       operationId: getVirtualDataplane
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: get
       x-ts-sdk-name: get
       summary: Get a virtual data plane
@@ -619,6 +642,8 @@ paths:
       tags:
         - Virtual Dataplanes
       operationId: updateVirtualDataplane
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: update
       x-ts-sdk-name: update
       summary: Update a virtual data plane
@@ -632,7 +657,7 @@ paths:
         `name`, or sends the current one, changes nothing.
 
         This endpoint is unavailable where HoneyHive assigns virtual data planes automatically,
-        and returns a 403 there.
+        and returns a 404 there.
       parameters:
         - in: path
           name: virtual_dataplane_id
@@ -655,14 +680,14 @@ paths:
                 $ref: '#/components/schemas/UpdateVirtualDataplaneResponse'
         '400':
           description: Invalid request body
-        '403':
-          description: The caller may not update this virtual data plane, or this deployment assigns virtual data planes automatically
         '404':
-          description: Virtual data plane not found
+          description: Virtual data plane not found, or the caller may not update it, or this deployment assigns virtual data planes automatically. The response does not say which.
     delete:
       tags:
         - Virtual Dataplanes
       operationId: deleteVirtualDataplane
+      security:
+        - ControlPlaneApiKey: []
       x-cli-name: delete
       x-ts-sdk-name: delete
       summary: Delete a virtual data plane
@@ -682,7 +707,7 @@ paths:
         archived, so read that first if you need the list.
 
         This endpoint is unavailable where HoneyHive assigns virtual data planes automatically,
-        and returns a 403 there.
+        and returns a 404 there.
       parameters:
         - in: path
           name: virtual_dataplane_id
@@ -709,17 +734,16 @@ paths:
                 $ref: '#/components/schemas/DeleteVirtualDataplaneResponse'
         '400':
           description: '`dangerously_delete_child_scopes` is not `true` or `false`'
-        '403':
-          description: The caller may not delete this virtual data plane, or this deployment assigns virtual data planes automatically
         '404':
-          description: Virtual data plane not found
+          description: Virtual data plane not found, or the caller may not delete it, or this deployment assigns virtual data planes automatically. The response does not say which.
         '409':
           description: The virtual data plane still has active workspaces and `dangerously_delete_child_scopes` was not set
 components:
   securitySchemes:
-    BearerAuth:
+    ControlPlaneApiKey:
       type: http
       scheme: bearer
+      description: A fine-grained control-plane API key (values begin with `hh_fgcp_`). Project API keys used with the Data Plane API will not work here. Create one in the HoneyHive app under an organization's or workspace's **Settings → API Keys**.
   schemas:
     AlertItem:
       type: object
@@ -1777,5 +1801,3 @@ components:
         - critical
         - resolved
       additionalProperties: false
-security:
-  - BearerAuth: []
