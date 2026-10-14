@@ -4,7 +4,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.14.0
+  version: 1.15.0
 servers:
   - url: https://api.dp1.us.honeyhive.ai
 tags:
@@ -1597,7 +1597,7 @@ paths:
     delete:
       tags:
         - Datasets
-      operationId: deleteDatasetLegacy
+      operationId: deleteDatasetQueryIdLegacy
       security:
         - BearerAuth: []
       x-cli-exclude: true
@@ -1605,7 +1605,7 @@ paths:
       deprecated: true
       x-hidden: true
       summary: Delete a dataset (deprecated)
-      description: Deprecated. Use `DELETE /v1/datasets/{dataset_id}` instead.
+      description: Deprecated. Use `DELETE /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead.
       parameters:
         - in: query
           name: dataset_id
@@ -1654,13 +1654,17 @@ paths:
     delete:
       tags:
         - Datasets
-      operationId: deleteDataset
+      operationId: deleteDatasetLegacy
       security:
         - BearerAuth: []
+      deprecated: true
+      x-twin:
+        op: deleteDataset
+        discriminator: project_id
       x-cli-name: delete
       x-ts-sdk-name: delete
-      summary: Delete a dataset
-      description: Permanently delete a dataset by its unique identifier.
+      summary: Delete a dataset (deprecated)
+      description: Deprecated. Use `DELETE /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead. Permanently deletes a dataset by its unique identifier.
       parameters:
         - in: path
           name: dataset_id
@@ -1811,6 +1815,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetDatasetsResponse'
+  /v1/projects/{project_id}/datasets/{dataset_id}:
+    delete:
+      tags:
+        - Datasets
+      operationId: deleteDataset
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: delete
+      x-ts-sdk-name: delete
+      summary: Delete a dataset
+      description: Permanently delete a dataset by its unique identifier.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project that owns the dataset
+        - in: path
+          name: dataset_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the dataset to be deleted like `663876ec4611c47f4970f0c3`
+      responses:
+        '200':
+          description: Successful delete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteDatasetResponse'
   /v1/projects/{project_id}/datasets/{dataset_id}/datapoints:
     post:
       tags:
@@ -3829,7 +3864,7 @@ components:
           description: Unique identifier of the dataset to delete
       required:
         - dataset_id
-      description: Query parameters for DELETE /datasets (deprecated — use DELETE /datasets/{dataset_id})
+      description: Query parameters for the deprecated DELETE /datasets. Use DELETE /projects/{project_id}/datasets/{dataset_id} instead.
       deprecated: true
     AddDatapointsToDatasetRequest:
       type: object
