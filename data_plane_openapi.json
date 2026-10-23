@@ -6,7 +6,7 @@
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
     },
-    "version": "1.14.0"
+    "version": "1.16.0"
   },
   "servers": [
     {
@@ -1130,6 +1130,65 @@
         }
       }
     },
+    "/v1/projects/{project_id}/charts/query": {
+      "post": {
+        "tags": [
+          "Charts"
+        ],
+        "operationId": "queryChart",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "query",
+        "x-ts-sdk-name": "query",
+        "summary": "Run a chart query",
+        "description": "Aggregate the project's events into one chart result. `query.kind` selects the result shape: time series, categorical, scalar, histogram, or table. Every query must include an `event_type is <type>` or `event_type is not <type>` filter; an `event_type is session` filter queries sessions instead of events. The `scatter` kind and a categorical `split_by` / `split_ranking` are accepted by the schema but not served yet, and answer 501.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project whose events are queried"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartQueryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chart query result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartQueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid or the query cannot be planned"
+          },
+          "422": {
+            "description": "The query exceeded its time or memory budget (`errorCode` `query_timeout` or `query_too_large`). Narrow the date range or add filters."
+          },
+          "501": {
+            "description": "The query uses a shape that is not served yet (`scatter`, or a categorical `split_by` / `split_ranking`)"
+          }
+        }
+      }
+    },
     "/v1/projects/{project_id}/charts/{chart_id}": {
       "get": {
         "tags": [
@@ -1882,19 +1941,24 @@
     },
     "/v1/datapoints": {
       "get": {
-        "summary": "Retrieve a list of datapoints",
-        "operationId": "getDatapoints",
+        "summary": "Retrieve a list of datapoints (deprecated)",
+        "operationId": "getDatapointsLegacy",
         "security": [
           {
             "BearerAuth": []
           }
         ],
+        "deprecated": true,
+        "x-twin": {
+          "op": "getDatapoints",
+          "discriminator": "project_id"
+        },
         "x-cli-name": "list",
         "x-ts-sdk-name": "list",
         "tags": [
           "Datapoints"
         ],
-        "description": "Retrieve datapoints, optionally filtered by a list of datapoint IDs or dataset name.\n",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/datapoints` with a data plane API key instead. Retrieves datapoints, optionally filtered by a list of datapoint IDs or dataset name.",
         "parameters": [
           {
             "name": "datapoint_ids",
@@ -1932,19 +1996,24 @@
         }
       },
       "post": {
-        "summary": "Create a new datapoint",
-        "operationId": "createDatapoint",
+        "summary": "Create a new datapoint (deprecated)",
+        "operationId": "createDatapointLegacy",
         "security": [
           {
             "BearerAuth": []
           }
         ],
+        "deprecated": true,
+        "x-twin": {
+          "op": "createDatapoint",
+          "discriminator": "project_id"
+        },
         "x-cli-name": "create",
         "x-ts-sdk-name": "create",
         "tags": [
           "Datapoints"
         ],
-        "description": "Create a single datapoint with inputs, history, ground truth, and metadata.",
+        "description": "Deprecated. Use `POST /v1/projects/{project_id}/datapoints` with a data plane API key instead. Creates a single datapoint with inputs, history, ground truth, and metadata.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1971,19 +2040,24 @@
     },
     "/v1/datapoints/batch": {
       "post": {
-        "summary": "Create multiple datapoints in batch",
-        "operationId": "batchCreateDatapoints",
+        "summary": "Create multiple datapoints in batch (deprecated)",
+        "operationId": "batchCreateDatapointsLegacy",
         "security": [
           {
             "BearerAuth": []
           }
         ],
+        "deprecated": true,
+        "x-twin": {
+          "op": "batchCreateDatapoints",
+          "discriminator": "project_id"
+        },
         "x-cli-name": "create-batch",
         "x-ts-sdk-name": "createBatch",
         "tags": [
           "Datapoints"
         ],
-        "description": "Create multiple datapoints from events using field mappings and optional filters.",
+        "description": "Deprecated. Use `POST /v1/projects/{project_id}/datapoints/batch` with a data plane API key instead. Creates multiple datapoints from events using field mappings and optional filters.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2053,8 +2127,8 @@
         }
       },
       "put": {
-        "summary": "Update a specific datapoint",
-        "description": "Update fields on an existing datapoint. Only the provided fields are modified.",
+        "summary": "Update a specific datapoint (deprecated)",
+        "description": "Deprecated. Use `PATCH /v1/projects/{project_id}/datapoints/{datapoint_id}` with a data plane API key instead. Updates fields on an existing datapoint. Only the provided fields are modified.",
         "parameters": [
           {
             "name": "datapoint_id",
@@ -2066,12 +2140,17 @@
             "description": "ID of datapoint to update"
           }
         ],
-        "operationId": "updateDatapoint",
+        "operationId": "updateDatapointLegacy",
         "security": [
           {
             "BearerAuth": []
           }
         ],
+        "deprecated": true,
+        "x-twin": {
+          "op": "updateDatapoint",
+          "discriminator": "project_id"
+        },
         "x-cli-name": "update",
         "x-ts-sdk-name": "update",
         "tags": [
@@ -2104,8 +2183,13 @@
         }
       },
       "delete": {
-        "summary": "Delete a specific datapoint",
-        "operationId": "deleteDatapoint",
+        "summary": "Delete a specific datapoint (deprecated)",
+        "operationId": "deleteDatapointLegacy",
+        "deprecated": true,
+        "x-twin": {
+          "op": "deleteDatapoint",
+          "discriminator": "project_id"
+        },
         "security": [
           {
             "BearerAuth": []
@@ -2116,7 +2200,7 @@
         "tags": [
           "Datapoints"
         ],
-        "description": "Permanently delete a datapoint by its unique identifier.",
+        "description": "Deprecated. Use `DELETE /v1/projects/{project_id}/datapoints/{datapoint_id}` with a data plane API key instead. Permanently deletes a datapoint by its unique identifier.",
         "parameters": [
           {
             "name": "datapoint_id",
@@ -2135,6 +2219,165 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeleteDatapointResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/datapoints": {
+      "get": {
+        "summary": "Retrieve a list of datapoints",
+        "operationId": "getDatapoints",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "list",
+        "x-ts-sdk-name": "list",
+        "tags": [
+          "Datapoints"
+        ],
+        "description": "Retrieve datapoints, optionally filtered by a list of datapoint IDs or dataset name.",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project whose datapoints are listed"
+          },
+          {
+            "name": "datapoint_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "List of datapoint ids to fetch"
+          },
+          {
+            "name": "dataset_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name of the dataset to get datapoints from"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDatapointsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new datapoint",
+        "operationId": "createDatapoint",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "create",
+        "x-ts-sdk-name": "create",
+        "tags": [
+          "Datapoints"
+        ],
+        "description": "Create a single datapoint with inputs, history, ground truth, and metadata. A request with a non-empty `linked_datasets` also requires the `project.dataset.post` permission.",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the datapoint"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDatapointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Datapoint successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDatapointResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/datapoints/batch": {
+      "post": {
+        "summary": "Create multiple datapoints in batch",
+        "operationId": "batchCreateDatapoints",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "create-batch",
+        "x-ts-sdk-name": "createBatch",
+        "tags": [
+          "Datapoints"
+        ],
+        "description": "Create multiple datapoints from events using field mappings and optional filters. A data plane API key needs both `project.datapoint.post` and `project.event.get` for the project, and also `project.dataset.post` when the body names a `dataset_id`.",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the datapoints"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchCreateDatapointsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Datapoints successfully created in batch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchCreateDatapointsResponse"
                 }
               }
             }
@@ -2187,6 +2430,113 @@
               }
             },
             "description": "Successful response"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a specific datapoint",
+        "description": "Update fields on an existing datapoint. Only the provided fields are modified. A request that includes `linked_datasets` also requires the `project.dataset.post` and `project.dataset.delete` permissions.",
+        "operationId": "updateDatapoint",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "tags": [
+          "Datapoints"
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the datapoint"
+          },
+          {
+            "name": "datapoint_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of datapoint to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDatapointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Datapoint successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateDatapointResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error updating datapoint"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a specific datapoint",
+        "operationId": "deleteDatapoint",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "delete",
+        "x-ts-sdk-name": "delete",
+        "tags": [
+          "Datapoints"
+        ],
+        "description": "Permanently delete a datapoint by its unique identifier, and remove it from every dataset that holds it. Answers 404 when the project holds no such datapoint. Requires only the `project.datapoint.delete` permission.",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the datapoint"
+          },
+          {
+            "name": "datapoint_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Datapoint ID like `65c13dbbd65fb876b7886cdb`"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datapoint successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteDatapointResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2248,7 +2598,7 @@
         "tags": [
           "Datasets"
         ],
-        "operationId": "createDataset",
+        "operationId": "createDatasetLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2256,8 +2606,13 @@
         ],
         "x-cli-name": "create",
         "x-ts-sdk-name": "create",
-        "summary": "Create a dataset",
-        "description": "Create a new dataset with an optional name, description, and initial set of datapoint IDs.",
+        "x-twin": {
+          "op": "createDataset",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
+        "summary": "Create a dataset (deprecated)",
+        "description": "Deprecated. Use `POST /v1/projects/{project_id}/datasets` with a data plane API key instead. Creates a new dataset with an optional name, description, and initial set of datapoint IDs.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2285,7 +2640,7 @@
         "tags": [
           "Datasets"
         ],
-        "operationId": "updateDatasetLegacy",
+        "operationId": "updateDatasetBodyIdLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2296,7 +2651,7 @@
         "deprecated": true,
         "x-hidden": true,
         "summary": "Update a dataset (deprecated)",
-        "description": "Deprecated. Use `PUT /v1/datasets/{dataset_id}` instead.",
+        "description": "Deprecated. Use `PATCH /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2324,7 +2679,7 @@
         "tags": [
           "Datasets"
         ],
-        "operationId": "deleteDatasetLegacy",
+        "operationId": "deleteDatasetQueryIdLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2335,7 +2690,7 @@
         "deprecated": true,
         "x-hidden": true,
         "summary": "Delete a dataset (deprecated)",
-        "description": "Deprecated. Use `DELETE /v1/datasets/{dataset_id}` instead.",
+        "description": "Deprecated. Use `DELETE /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead.",
         "parameters": [
           {
             "in": "query",
@@ -2366,7 +2721,7 @@
         "tags": [
           "Datasets"
         ],
-        "operationId": "updateDataset",
+        "operationId": "updateDatasetLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2374,8 +2729,13 @@
         ],
         "x-cli-name": "update",
         "x-ts-sdk-name": "update",
-        "summary": "Update a dataset",
-        "description": "Update a dataset's name, description, or list of datapoint IDs.",
+        "x-twin": {
+          "op": "updateDataset",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
+        "summary": "Update a dataset (deprecated)",
+        "description": "Deprecated. Use `PATCH /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead. Updates a dataset's name, description, or list of datapoint IDs.",
         "parameters": [
           {
             "in": "path",
@@ -2414,16 +2774,21 @@
         "tags": [
           "Datasets"
         ],
-        "operationId": "deleteDataset",
+        "operationId": "deleteDatasetLegacy",
         "security": [
           {
             "BearerAuth": []
           }
         ],
+        "deprecated": true,
+        "x-twin": {
+          "op": "deleteDataset",
+          "discriminator": "project_id"
+        },
         "x-cli-name": "delete",
         "x-ts-sdk-name": "delete",
-        "summary": "Delete a dataset",
-        "description": "Permanently delete a dataset by its unique identifier.",
+        "summary": "Delete a dataset (deprecated)",
+        "description": "Deprecated. Use `DELETE /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead. Permanently deletes a dataset by its unique identifier.",
         "parameters": [
           {
             "in": "path",
@@ -2509,16 +2874,21 @@
         "tags": [
           "Datasets"
         ],
-        "summary": "Remove a datapoint from a dataset",
-        "operationId": "removeDatapoint",
+        "summary": "Remove a datapoint from a dataset (deprecated)",
+        "operationId": "removeDatapointLegacy",
         "security": [
           {
             "BearerAuth": []
           }
         ],
+        "deprecated": true,
+        "x-twin": {
+          "op": "removeDatapoint",
+          "discriminator": "project_id"
+        },
         "x-cli-name": "remove-datapoint",
         "x-ts-sdk-name": "removeDatapoint",
-        "description": "Remove a specific datapoint from a dataset. The datapoint itself is not deleted, only dereferenced from the dataset.",
+        "description": "Deprecated. Use `DELETE /v1/projects/{project_id}/datasets/{dataset_id}/datapoints/{datapoint_id}` with a data plane API key instead. Removes a specific datapoint from a dataset. The datapoint itself is not deleted, only dereferenced from the dataset.",
         "parameters": [
           {
             "in": "path",
@@ -2559,7 +2929,7 @@
           "Datasets"
         ],
         "summary": "Remove a datapoint from a dataset (deprecated)",
-        "operationId": "removeDatapointLegacy",
+        "operationId": "removeDatapointShortPathLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2569,7 +2939,7 @@
         "x-ts-sdk-exclude": true,
         "deprecated": true,
         "x-hidden": true,
-        "description": "Deprecated. Use `DELETE /v1/datasets/{dataset_id}/datapoints/{datapoint_id}` instead.",
+        "description": "Deprecated. Use `DELETE /v1/projects/{project_id}/datasets/{dataset_id}/datapoints/{datapoint_id}` with a data plane API key instead.",
         "parameters": [
           {
             "in": "path",
@@ -2660,6 +3030,160 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "operationId": "createDataset",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "create",
+        "x-ts-sdk-name": "create",
+        "summary": "Create a dataset",
+        "description": "Create a new dataset with an optional name, description, and initial set of datapoint IDs.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the dataset"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDatasetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDatasetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/datasets/{dataset_id}": {
+      "patch": {
+        "tags": [
+          "Datasets"
+        ],
+        "operationId": "updateDataset",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Update a dataset",
+        "description": "Update a dataset's name, description, or list of datapoint IDs.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the dataset"
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the dataset to update like `663876ec4611c47f4970f0c3`"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDatasetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateDatasetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Datasets"
+        ],
+        "operationId": "deleteDataset",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "delete",
+        "x-ts-sdk-name": "delete",
+        "summary": "Delete a dataset",
+        "description": "Permanently delete a dataset by its unique identifier.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the dataset"
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the dataset to be deleted like `663876ec4611c47f4970f0c3`"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful delete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteDatasetResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/projects/{project_id}/datasets/{dataset_id}/datapoints": {
@@ -2714,6 +3238,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AddDatapointsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/datasets/{dataset_id}/datapoints/{datapoint_id}": {
+      "delete": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Remove a datapoint from a dataset",
+        "operationId": "removeDatapoint",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "remove-datapoint",
+        "x-ts-sdk-name": "removeDatapoint",
+        "description": "Remove a specific datapoint from a dataset. The datapoint itself is not deleted, only dereferenced from the dataset.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the dataset"
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the dataset"
+          },
+          {
+            "in": "path",
+            "name": "datapoint_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the datapoint to remove"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datapoint successfully removed from dataset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveDatapointResponse"
                 }
               }
             }
@@ -2781,8 +3363,8 @@
     },
     "/v1/runs": {
       "post": {
-        "summary": "Create a new evaluation run",
-        "operationId": "createRun",
+        "summary": "Create a new evaluation run (deprecated)",
+        "operationId": "createRunLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2790,10 +3372,15 @@
         ],
         "x-cli-name": "create-run",
         "x-ts-sdk-name": "createRun",
+        "x-twin": {
+          "op": "createRun",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Create a new experiment run to track an evaluation against a dataset.",
+        "description": "Deprecated. Use `POST /v1/projects/{project_id}/runs` with a data plane API key instead. Creates a new experiment run to track an evaluation against a dataset.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2821,8 +3408,8 @@
         }
       },
       "get": {
-        "summary": "Get a list of evaluation runs",
-        "operationId": "getRuns",
+        "summary": "Get a list of evaluation runs (deprecated)",
+        "operationId": "getRunsLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2830,10 +3417,15 @@
         ],
         "x-cli-name": "list-runs",
         "x-ts-sdk-name": "listRuns",
+        "x-twin": {
+          "op": "getRuns",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "List experiment runs with optional filtering by dataset, status, name, date range, and specific run IDs. Results are paginated and sortable.\n",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs` with a data plane API key instead. Lists experiment runs with optional filtering by dataset, status, name, date range, and specific run IDs. Results are paginated and sortable.",
         "parameters": [
           {
             "in": "query",
@@ -2970,8 +3562,8 @@
     },
     "/v1/runs/schema": {
       "get": {
-        "summary": "Get events schema across all experiment runs in a project",
-        "operationId": "getRunsSchema",
+        "summary": "Get events schema across all experiment runs in a project (deprecated)",
+        "operationId": "getRunsSchemaLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -2979,10 +3571,15 @@
         ],
         "x-cli-name": "get-runs-schema",
         "x-ts-sdk-name": "getRunsSchema",
+        "x-twin": {
+          "op": "getRunsSchema",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Retrieve the aggregated events schema (fields, datasets, mappings) across all experiment runs in the project.",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/schema` with a data plane API key instead. Retrieves the aggregated events schema (fields, datasets, mappings) across all experiment runs in the project.",
         "parameters": [
           {
             "in": "query",
@@ -3020,8 +3617,8 @@
     },
     "/v1/runs/{run_id}": {
       "get": {
-        "summary": "Get details of an evaluation run",
-        "operationId": "getRun",
+        "summary": "Get details of an evaluation run (deprecated)",
+        "operationId": "getRunLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3029,10 +3626,15 @@
         ],
         "x-cli-name": "get-run",
         "x-ts-sdk-name": "getRun",
+        "x-twin": {
+          "op": "getRun",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Retrieve the full details of a single experiment run by its run ID.",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{run_id}` with a data plane API key instead. Retrieves the full details of a single experiment run by its run ID.",
         "parameters": [
           {
             "in": "path",
@@ -3061,8 +3663,8 @@
         }
       },
       "put": {
-        "summary": "Update an evaluation run",
-        "operationId": "updateRun",
+        "summary": "Update an evaluation run (deprecated)",
+        "operationId": "updateRunLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3070,10 +3672,15 @@
         ],
         "x-cli-name": "update-run",
         "x-ts-sdk-name": "updateRun",
+        "x-twin": {
+          "op": "updateRun",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Update fields on an existing experiment run such as name, status, metadata, or results.",
+        "description": "Deprecated. Use `PATCH /v1/projects/{project_id}/runs/{run_id}` with a data plane API key instead. Updates fields on an existing experiment run such as name, status, metadata, or results.",
         "parameters": [
           {
             "in": "path",
@@ -3112,8 +3719,8 @@
         }
       },
       "delete": {
-        "summary": "Delete an evaluation run",
-        "operationId": "deleteRun",
+        "summary": "Delete an evaluation run (deprecated)",
+        "operationId": "deleteRunLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3121,10 +3728,15 @@
         ],
         "x-cli-name": "delete-run",
         "x-ts-sdk-name": "deleteRun",
+        "x-twin": {
+          "op": "deleteRun",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Permanently delete an experiment run by its run ID.",
+        "description": "Deprecated. Use `DELETE /v1/projects/{project_id}/runs/{run_id}` with a data plane API key instead. Permanently deletes an experiment run by its run ID.",
         "parameters": [
           {
             "in": "path",
@@ -3155,8 +3767,8 @@
     },
     "/v1/runs/{run_id}/schema": {
       "get": {
-        "summary": "Get events schema for a single experiment run",
-        "operationId": "getRunSchema",
+        "summary": "Get events schema for a single experiment run (deprecated)",
+        "operationId": "getRunSchemaLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3164,10 +3776,15 @@
         ],
         "x-cli-name": "get-run-schema",
         "x-ts-sdk-name": "getRunSchema",
+        "x-twin": {
+          "op": "getRunSchema",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Retrieve the events schema (fields, datasets, mappings) for a single experiment run.",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{run_id}/schema` with a data plane API key instead. Retrieves the events schema (fields, datasets, mappings) for a single experiment run.",
         "parameters": [
           {
             "name": "run_id",
@@ -3215,8 +3832,8 @@
     },
     "/v1/runs/{run_id}/metrics": {
       "get": {
-        "summary": "Get event metrics for an experiment run",
-        "operationId": "getExperimentRunMetrics",
+        "summary": "Get event metrics for an experiment run (deprecated)",
+        "operationId": "getExperimentRunMetricsLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3224,10 +3841,15 @@
         ],
         "x-cli-name": "get-run-metrics",
         "x-ts-sdk-name": "getRunMetrics",
+        "x-twin": {
+          "op": "getExperimentRunMetrics",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Retrieve event metrics from ClickHouse for a specific experiment run",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{run_id}/metrics` with a data plane API key instead. Retrieves event metrics from ClickHouse for a specific experiment run",
         "parameters": [
           {
             "name": "run_id",
@@ -3287,8 +3909,8 @@
     },
     "/v1/runs/{run_id}/summary": {
       "get": {
-        "summary": "Retrieve experiment summary",
-        "operationId": "getExperimentSummary",
+        "summary": "Retrieve experiment summary (deprecated)",
+        "operationId": "getExperimentSummaryLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3296,10 +3918,15 @@
         ],
         "x-cli-name": "get-summary",
         "x-ts-sdk-name": "getSummary",
+        "x-twin": {
+          "op": "getExperimentSummary",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Compute evaluation summary for an experiment run: pass/fail results, metric aggregations, per-datapoint results, event details, and the experiment run object.",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{run_id}/summary` with a data plane API key instead. Computes evaluation summary for an experiment run: pass/fail results, metric aggregations, per-datapoint results, event details, and the experiment run object.",
         "parameters": [
           {
             "name": "run_id",
@@ -3457,8 +4084,8 @@
     },
     "/v1/runs/{new_run_id}/compare/{old_run_id}": {
       "get": {
-        "summary": "Retrieve experiment comparison",
-        "operationId": "getExperimentComparison",
+        "summary": "Retrieve experiment comparison (deprecated)",
+        "operationId": "getExperimentComparisonLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3466,11 +4093,119 @@
         ],
         "x-cli-name": "compare-runs",
         "x-ts-sdk-name": "compareRuns",
+        "x-twin": {
+          "op": "getExperimentComparison",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Compare metrics and results between two experiment runs",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{new_run_id}/compare/{old_run_id}` with a data plane API key instead. Compares metrics and results between two experiment runs.",
         "parameters": [
+          {
+            "name": "new_run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "New experiment run ID to compare (UUIDv4)"
+          },
+          {
+            "name": "old_run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Old experiment run ID to compare against (UUIDv4)"
+          },
+          {
+            "name": "aggregate_function",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "average",
+                "min",
+                "max",
+                "median",
+                "p95",
+                "p99",
+                "p90",
+                "sum",
+                "count"
+              ],
+              "default": "average"
+            },
+            "description": "Aggregation function to apply to metrics"
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              ]
+            },
+            "description": "Optional filters to apply (JSON string or array of filter objects)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Experiment comparison retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExperimentRunCompareResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error processing experiment comparison"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs/{new_run_id}/compare/{old_run_id}": {
+      "get": {
+        "summary": "Retrieve experiment comparison",
+        "operationId": "getExperimentComparison",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "compare-runs",
+        "x-ts-sdk-name": "compareRuns",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Compare metrics and results between two experiment runs in the project.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that holds both runs"
+          },
           {
             "name": "new_run_id",
             "in": "path",
@@ -3552,7 +4287,7 @@
     "/v1/runs/{new_run_id}/compare-with/{old_run_id}": {
       "get": {
         "summary": "Retrieve experiment comparison (deprecated)",
-        "operationId": "getExperimentComparisonLegacy",
+        "operationId": "getExperimentComparisonCompareWithLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3565,7 +4300,7 @@
         "tags": [
           "Experiments"
         ],
-        "description": "Deprecated. Use `GET /v1/runs/{new_run_id}/compare/{old_run_id}` instead.",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{new_run_id}/compare/{old_run_id}` with a data plane API key instead.",
         "parameters": [
           {
             "name": "new_run_id",
@@ -3635,8 +4370,8 @@
     },
     "/v1/runs/{new_run_id}/compare/{old_run_id}/events": {
       "get": {
-        "summary": "Compare events between two experiment runs",
-        "operationId": "getExperimentCompareEvents",
+        "summary": "Compare events between two experiment runs (deprecated)",
+        "operationId": "getExperimentCompareEventsLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3644,10 +4379,15 @@
         ],
         "x-cli-name": "compare-run-events",
         "x-ts-sdk-name": "compareRunEvents",
+        "x-twin": {
+          "op": "getExperimentCompareEvents",
+          "discriminator": "project_id"
+        },
+        "deprecated": true,
         "tags": [
           "Experiments"
         ],
-        "description": "Retrieve and compare events between two experiment runs for detailed analysis",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{new_run_id}/compare/{old_run_id}/events` with a data plane API key instead. Retrieves and compares events between two experiment runs for detailed analysis",
         "parameters": [
           {
             "name": "new_run_id",
@@ -3747,7 +4487,7 @@
     "/v1/runs/compare/events": {
       "get": {
         "summary": "Compare events between two experiment runs (deprecated)",
-        "operationId": "getExperimentCompareEventsLegacy",
+        "operationId": "getExperimentCompareEventsQueryIdLegacy",
         "security": [
           {
             "BearerAuth": []
@@ -3760,7 +4500,7 @@
         "tags": [
           "Experiments"
         ],
-        "description": "Deprecated. Use `GET /v1/runs/{new_run_id}/compare/{old_run_id}/events` instead.",
+        "description": "Deprecated. Use `GET /v1/projects/{project_id}/runs/{new_run_id}/compare/{old_run_id}/events` with a data plane API key instead.",
         "parameters": [
           {
             "name": "run_id_1",
@@ -3781,6 +4521,799 @@
               "format": "uuid"
             },
             "description": "Second experiment run ID (UUIDv4)"
+          },
+          {
+            "name": "event_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by event name"
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by event type"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            },
+            "description": "Additional filter criteria (JSON string or object)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 1000
+            },
+            "description": "Maximum number of results"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event comparison retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExperimentCompareEventsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error fetching event comparison"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs": {
+      "get": {
+        "summary": "Get a list of evaluation runs",
+        "operationId": "getRuns",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "list-runs",
+        "x-ts-sdk-name": "listRuns",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "List experiment runs with optional filtering by dataset, status, name, date range, and specific run IDs. Results are paginated and sortable.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project whose runs are listed"
+          },
+          {
+            "in": "query",
+            "name": "dataset_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by dataset ID"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "run_ids",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "List of specific run IDs to fetch"
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by run name"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "completed",
+                "failed",
+                "cancelled",
+                "running"
+              ]
+            },
+            "description": "Filter by run status"
+          },
+          {
+            "in": "query",
+            "name": "dateRange",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/GetRunsDateRangeOneOf1"
+                }
+              ]
+            },
+            "description": "Filter by date range"
+          },
+          {
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "updated_at",
+                "name",
+                "status"
+              ],
+              "default": "created_at"
+            },
+            "description": "Field to sort by"
+          },
+          {
+            "in": "query",
+            "name": "sort_order",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Sort order"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExperimentRunsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error fetching evaluations"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new evaluation run",
+        "operationId": "createRun",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "create-run",
+        "x-ts-sdk-name": "createRun",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Create a new experiment run to track an evaluation against a dataset.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the run"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostExperimentRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostExperimentRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs/schema": {
+      "get": {
+        "summary": "Get events schema across all experiment runs in a project",
+        "operationId": "getRunsSchema",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get-runs-schema",
+        "x-ts-sdk-name": "getRunsSchema",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Retrieve the aggregated events schema (fields, datasets, mappings) across all experiment runs in the project.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project whose runs the schema covers"
+          },
+          {
+            "in": "query",
+            "name": "dateRange",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/GetRunsSchemaDateRangeOneOf1"
+                }
+              ]
+            },
+            "description": "Filter by date range"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events schema retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetEventsSchemaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error fetching events schema"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs/{run_id}": {
+      "get": {
+        "summary": "Get details of an evaluation run",
+        "operationId": "getRun",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get-run",
+        "x-ts-sdk-name": "getRun",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Retrieve the full details of a single experiment run by its run ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the run"
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExperimentRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error fetching evaluation"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an evaluation run",
+        "operationId": "updateRun",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update-run",
+        "x-ts-sdk-name": "updateRun",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Update fields on an existing experiment run such as name, status, metadata, or results.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the run"
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutExperimentRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PutExperimentRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an evaluation run",
+        "operationId": "deleteRun",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "delete-run",
+        "x-ts-sdk-name": "deleteRun",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Permanently delete an experiment run by its run ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that owns the run"
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteExperimentRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error deleting evaluation"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs/{run_id}/schema": {
+      "get": {
+        "summary": "Get events schema for a single experiment run",
+        "operationId": "getRunSchema",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get-run-schema",
+        "x-ts-sdk-name": "getRunSchema",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Retrieve the events schema (fields, datasets, mappings) for a single experiment run.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that holds the run"
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Experiment run ID (UUIDv4)"
+          },
+          {
+            "in": "query",
+            "name": "dateRange",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/GetRunSchemaDateRangeOneOf1"
+                }
+              ]
+            },
+            "description": "Filter by date range"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events schema retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetEventsSchemaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error fetching events schema"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs/{run_id}/summary": {
+      "get": {
+        "summary": "Retrieve experiment summary",
+        "operationId": "getExperimentSummary",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get-summary",
+        "x-ts-sdk-name": "getSummary",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Compute evaluation summary for an experiment run: pass/fail results, metric aggregations, per-datapoint results, event details, and the experiment run object.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that holds the experiment run"
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Experiment run ID (UUIDv4)"
+          },
+          {
+            "name": "aggregate_function",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "average",
+                "min",
+                "max",
+                "median",
+                "p95",
+                "p99",
+                "p90",
+                "sum",
+                "count"
+              ],
+              "default": "average"
+            },
+            "description": "Aggregation function to apply to metrics"
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              ]
+            },
+            "description": "Optional filters to apply (JSON string or array of filter objects)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Experiment summary retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExperimentRunResultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error processing experiment summary"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs/{run_id}/metrics": {
+      "get": {
+        "summary": "Get event metrics for an experiment run",
+        "operationId": "getExperimentRunMetrics",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get-run-metrics",
+        "x-ts-sdk-name": "getRunMetrics",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Retrieve event metrics from ClickHouse for a specific experiment run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that holds the run"
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Experiment run ID (UUIDv4)"
+          },
+          {
+            "name": "dateRange",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Date range filter as JSON string"
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              ]
+            },
+            "description": "Optional filters to apply (JSON string or array of filter objects)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event metrics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExperimentRunMetricsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error fetching event metrics"
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/runs/{new_run_id}/compare/{old_run_id}/events": {
+      "get": {
+        "summary": "Compare events between two experiment runs",
+        "operationId": "getExperimentCompareEvents",
+        "security": [
+          {
+            "DataPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "compare-run-events",
+        "x-ts-sdk-name": "compareRunEvents",
+        "tags": [
+          "Experiments"
+        ],
+        "description": "Retrieve and compare events between two experiment runs for detailed analysis",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project that holds both runs"
+          },
+          {
+            "name": "new_run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "New experiment run ID (UUIDv4)"
+          },
+          {
+            "name": "old_run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Old experiment run ID to compare against (UUIDv4)"
           },
           {
             "name": "event_name",
@@ -4465,6 +5998,881 @@
         },
         "required": [
           "success",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryRequest": {
+        "type": "object",
+        "properties": {
+          "date_range": {
+            "$ref": "#/components/schemas/ChartQueryDateRange"
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSearchFilter"
+            },
+            "maxItems": 20,
+            "description": "Implicit AND; default none"
+          },
+          "product_filters": {
+            "$ref": "#/components/schemas/ChartQueryProductFilters"
+          },
+          "query": {
+            "$ref": "#/components/schemas/ChartQuery"
+          }
+        },
+        "required": [
+          "date_range",
+          "query"
+        ],
+        "additionalProperties": false,
+        "description": "Request body for POST /v1/charts/query"
+      },
+      "ChartQueryDateRange": {
+        "type": "object",
+        "properties": {
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 start of the range (inclusive); Z or explicit offset"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 end of the range (exclusive); Z or explicit offset"
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "IANA timezone name; defaults to UTC. Affects bucket alignment only."
+          }
+        },
+        "required": [
+          "start_time",
+          "end_time"
+        ],
+        "additionalProperties": false
+      },
+      "EventSearchFilter": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "exists",
+              "not exists",
+              "is",
+              "is not",
+              "contains",
+              "not contains",
+              "greater than",
+              "less than",
+              "after",
+              "before"
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "number",
+              "boolean",
+              "datetime"
+            ]
+          }
+        },
+        "required": [
+          "field",
+          "operator",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryProductFilters": {
+        "type": "object",
+        "properties": {
+          "experiment_run_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Restrict to one experiment run"
+          },
+          "only_experiments": {
+            "type": "boolean",
+            "description": "Restrict to events belonging to any experiment run"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChartQuery": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChartQueryTimeSeries"
+          },
+          {
+            "$ref": "#/components/schemas/ChartQueryCategorical"
+          },
+          {
+            "$ref": "#/components/schemas/ChartQueryScalar"
+          },
+          {
+            "$ref": "#/components/schemas/ChartQueryHistogram"
+          },
+          {
+            "$ref": "#/components/schemas/ChartQueryTable"
+          },
+          {
+            "$ref": "#/components/schemas/ChartQueryScatter"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "time_series": "#/components/schemas/ChartQueryTimeSeries",
+            "categorical": "#/components/schemas/ChartQueryCategorical",
+            "scalar": "#/components/schemas/ChartQueryScalar",
+            "histogram": "#/components/schemas/ChartQueryHistogram",
+            "table": "#/components/schemas/ChartQueryTable",
+            "scatter": "#/components/schemas/ChartQueryScatter"
+          }
+        }
+      },
+      "ChartQueryTimeSeries": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "time_series"
+            ]
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/ChartQueryBucket"
+          },
+          "split_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Groupable field; one series per value"
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartQueryMeasure"
+            },
+            "minItems": 1,
+            "maxItems": 5,
+            "description": "Display-ordered measures, same unit; exactly one when split_by is set"
+          },
+          "split_ranking": {
+            "$ref": "#/components/schemas/ChartQueryRanking"
+          }
+        },
+        "required": [
+          "kind",
+          "measures"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryBucket": {
+        "type": "object",
+        "properties": {
+          "interval": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1m",
+              "5m",
+              "1h",
+              "1d",
+              "1w",
+              "1M"
+            ],
+            "description": "Bucket width; default auto"
+          },
+          "max_points": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Ceiling on bucket count when interval is auto; widens the resolved interval, never narrows it. Default 200, max 1000"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChartQueryMeasure": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Response handle for this measure; defaults to the metric name"
+          },
+          "metric": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Field name or intrinsic metric id"
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/ChartQueryAggregation"
+          }
+        },
+        "required": [
+          "metric"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryAggregation": {
+        "type": "string",
+        "enum": [
+          "count",
+          "avg",
+          "sum",
+          "min",
+          "max",
+          "median",
+          "p50",
+          "p75",
+          "p90",
+          "p95",
+          "p99",
+          "percentage_true",
+          "percentage_false",
+          "percentage_null"
+        ],
+        "description": "Omit for a registry default; must be omitted for intrinsic metrics"
+      },
+      "ChartQueryRanking": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Cap on ranked items; default 10, at most 50"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "description": "Rank order; default desc"
+          },
+          "include_other": {
+            "type": "boolean",
+            "description": "Roll everything below the cap into an \"Other\" item; additive measures only"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Caps the split_by dimension"
+      },
+      "ChartQueryCategorical": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "categorical"
+            ]
+          },
+          "group_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Groupable field forming the axis"
+          },
+          "split_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Groupable field forming stacks/groups"
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartQueryMeasure"
+            },
+            "minItems": 1,
+            "maxItems": 5,
+            "description": "Display-ordered measures, same unit; exactly one when split_by is set"
+          },
+          "ranking": {
+            "$ref": "#/components/schemas/ChartQueryRanking",
+            "description": "Caps the group_by dimension"
+          },
+          "split_ranking": {
+            "$ref": "#/components/schemas/ChartQueryRanking",
+            "description": "Caps the split_by dimension; default limit 10 even when omitted"
+          }
+        },
+        "required": [
+          "kind",
+          "group_by",
+          "measures"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryScalar": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "scalar"
+            ]
+          },
+          "measure": {
+            "$ref": "#/components/schemas/ChartQueryMeasure"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/ChartQueryScalarComparison"
+          },
+          "sparkline": {
+            "$ref": "#/components/schemas/ChartQueryScalarSparkline"
+          }
+        },
+        "required": [
+          "kind",
+          "measure"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryHistogram": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "histogram"
+            ]
+          },
+          "metric": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Numeric field name; no aggregation"
+          },
+          "bins": {
+            "$ref": "#/components/schemas/ChartQueryHistogramBins"
+          },
+          "markers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "p50",
+                "p75",
+                "p90",
+                "p95",
+                "p99"
+              ]
+            },
+            "maxItems": 5,
+            "description": "Percentile lines to compute on the same scan; default none"
+          }
+        },
+        "required": [
+          "kind",
+          "metric"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryTable": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "table"
+            ]
+          },
+          "group_by": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "maxItems": 3,
+            "description": "Groupable fields forming row identity"
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartQueryMeasure"
+            },
+            "minItems": 1,
+            "maxItems": 5,
+            "description": "Columns, in display order; units may differ"
+          },
+          "order_by": {
+            "$ref": "#/components/schemas/ChartQueryTableOrderBy"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Default 50, at most 100"
+          }
+        },
+        "required": [
+          "kind",
+          "group_by",
+          "measures"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryScatter": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "scatter"
+            ]
+          },
+          "group_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One groupable field forming point identity"
+          },
+          "x": {
+            "$ref": "#/components/schemas/ChartQueryMeasure"
+          },
+          "y": {
+            "$ref": "#/components/schemas/ChartQueryMeasure"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Default 100, clamped to 500"
+          }
+        },
+        "required": [
+          "kind",
+          "group_by",
+          "x",
+          "y"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChartResult"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "Response body for POST /v1/charts/query"
+      },
+      "ChartResult": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChartResultTimeSeries"
+          },
+          {
+            "$ref": "#/components/schemas/ChartResultCategorical"
+          },
+          {
+            "$ref": "#/components/schemas/ChartResultScalar"
+          },
+          {
+            "$ref": "#/components/schemas/ChartResultHistogram"
+          },
+          {
+            "$ref": "#/components/schemas/ChartResultTable"
+          },
+          {
+            "$ref": "#/components/schemas/ChartResultScatter"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "time_series": "#/components/schemas/ChartResultTimeSeries",
+            "categorical": "#/components/schemas/ChartResultCategorical",
+            "scalar": "#/components/schemas/ChartResultScalar",
+            "histogram": "#/components/schemas/ChartResultHistogram",
+            "table": "#/components/schemas/ChartResultTable",
+            "scatter": "#/components/schemas/ChartResultScatter"
+          }
+        }
+      },
+      "ChartResultTimeSeries": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "time_series"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ChartResultTimeSeriesMeta"
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultMeasure"
+            }
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChartResultTimeSeriesData"
+          }
+        },
+        "required": [
+          "kind",
+          "meta",
+          "measures",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultWarning": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable machine key; well-known values in CHART_RESULT_WARNING_CODES"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable; UI affordances key off `code`, never this"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "description": "Context the server already had, e.g. { field: \"metadata.cost\" } or a count"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultMeasure": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "ms",
+              "usd",
+              "tokens",
+              "events",
+              "sessions",
+              "%",
+              "number"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "number",
+              "duration_ms",
+              "currency_usd",
+              "percent"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "unit",
+          "format"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultSeries": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable within a response; safe as a React key"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display string; \"(empty)\" for a stored empty string"
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Machine-readable identity, e.g. { \"config.model\": \"gpt-4o\" }"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Positional, aligned to the kind’s axis array"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "dimensions",
+          "values"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultCategorical": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "categorical"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ChartResultCategoricalMeta"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "ms",
+              "usd",
+              "tokens",
+              "events",
+              "sessions",
+              "%",
+              "number"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "number",
+              "duration_ms",
+              "currency_usd",
+              "percent"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChartResultCategoricalData"
+          }
+        },
+        "required": [
+          "kind",
+          "meta",
+          "unit",
+          "format",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultCategory": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable within a response; safe as a React key"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display string; \"(empty)\" for a stored empty string"
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Machine-readable identity, e.g. { \"config.model\": \"gpt-4o\" }"
+          },
+          "is_other": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Present only on the \"Other\" rollup"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "dimensions"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScalar": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "scalar"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ChartResultScalarMeta"
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultMeasure"
+            }
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChartResultScalarData"
+          }
+        },
+        "required": [
+          "kind",
+          "meta",
+          "measures",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultHistogram": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "histogram"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ChartResultHistogramMeta"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "ms",
+              "usd",
+              "tokens",
+              "events",
+              "sessions",
+              "%",
+              "number"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "number",
+              "duration_ms",
+              "currency_usd",
+              "percent"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChartResultHistogramData"
+          }
+        },
+        "required": [
+          "kind",
+          "meta",
+          "unit",
+          "format",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultTable": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "table"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ChartResultTableMeta"
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultMeasure"
+            }
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChartResultTableData"
+          }
+        },
+        "required": [
+          "kind",
+          "meta",
+          "measures",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScatter": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "scatter"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ChartResultScatterMeta"
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultMeasure"
+            }
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChartResultScatterData"
+          }
+        },
+        "required": [
+          "kind",
+          "meta",
+          "measures",
           "data"
         ],
         "additionalProperties": false
@@ -5676,7 +8084,7 @@
         "required": [
           "dataset_id"
         ],
-        "description": "Query parameters for DELETE /datasets (deprecated — use DELETE /datasets/{dataset_id})",
+        "description": "Query parameters for the deprecated DELETE /datasets. Use DELETE /projects/{project_id}/datasets/{dataset_id} instead.",
         "deprecated": true
       },
       "AddDatapointsToDatasetRequest": {
@@ -5843,60 +8251,6 @@
         "items": {
           "$ref": "#/components/schemas/SingleFilter"
         }
-      },
-      "EventSearchFilter": {
-        "type": "object",
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "operator": {
-            "type": "string",
-            "enum": [
-              "exists",
-              "not exists",
-              "is",
-              "is not",
-              "contains",
-              "not contains",
-              "greater than",
-              "less than",
-              "after",
-              "before"
-            ]
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "string",
-              "number",
-              "boolean",
-              "datetime"
-            ]
-          }
-        },
-        "required": [
-          "field",
-          "operator",
-          "value"
-        ],
-        "additionalProperties": false
       },
       "EventSearchFiltersArray": {
         "type": "array",
@@ -7172,7 +9526,8 @@
         "type": "object",
         "properties": {
           "run_id": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional client-generated UUID. A value that is not a valid UUID is replaced by a generated one; the response's run_id is authoritative."
           },
           "name": {
             "type": "string",
@@ -9424,6 +11779,602 @@
           "description",
           "root_scope_type",
           "root_scope_id"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryScalarComparison": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "previous_period",
+              "none"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": false,
+        "description": "Delta baseline; default none"
+      },
+      "ChartQueryScalarSparkline": {
+        "type": "object",
+        "properties": {
+          "interval": {
+            "type": "string",
+            "enum": [
+              "auto"
+            ]
+          },
+          "max_points": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Default 50; sparklines are small"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Omit for no sparkline — it is a second query, so it is opt-in"
+      },
+      "ChartQueryHistogramBins": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "count"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Default 20, at most 200"
+          },
+          "min": {
+            "type": "number",
+            "description": "Lower edge; discovered from the data when omitted"
+          },
+          "max": {
+            "type": "number",
+            "description": "Upper edge; the p99 of the data when omitted, so one outlier cannot flatten the chart"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "ChartQueryTableOrderBy": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A measure id or a group field; a measure wins if a name is both"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        },
+        "required": [
+          "field"
+        ],
+        "additionalProperties": false,
+        "description": "Default: first measure, descending"
+      },
+      "ChartResultTimeSeriesMetaEffectiveBucket": {
+        "type": "object",
+        "properties": {
+          "interval": {
+            "type": "string"
+          },
+          "fill": {
+            "type": "string",
+            "enum": [
+              "zero",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "interval",
+          "fill"
+        ],
+        "additionalProperties": false,
+        "description": "What the server resolved; the UI cannot label the x-axis without it"
+      },
+      "ChartResultTimeSeriesMetaRanking": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number"
+          },
+          "total_series": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "limit",
+          "total_series"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultTimeSeriesMeta": {
+        "type": "object",
+        "properties": {
+          "matched_event_count": {
+            "type": "number",
+            "description": "Rows in scope after filters and dedup; powers empty-state vs error-state UI"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultWarning"
+            }
+          },
+          "effective_bucket": {
+            "$ref": "#/components/schemas/ChartResultTimeSeriesMetaEffectiveBucket"
+          },
+          "ranking": {
+            "$ref": "#/components/schemas/ChartResultTimeSeriesMetaRanking"
+          }
+        },
+        "required": [
+          "matched_event_count",
+          "warnings",
+          "effective_bucket"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultTimeSeriesData": {
+        "type": "object",
+        "properties": {
+          "buckets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Full axis, no gaps; UTC instants of timezone-local bucket starts"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultSeries"
+            }
+          }
+        },
+        "required": [
+          "buckets",
+          "series"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultCategoricalMeta": {
+        "type": "object",
+        "properties": {
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultWarning"
+            }
+          }
+        },
+        "required": [
+          "warnings"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultCategoricalData": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultCategory"
+            }
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultSeries"
+            }
+          }
+        },
+        "required": [
+          "categories",
+          "series"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScalarMeta": {
+        "type": "object",
+        "properties": {
+          "matched_event_count": {
+            "type": "number",
+            "description": "Rows in scope after filters and dedup; powers empty-state vs error-state UI"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultWarning"
+            }
+          }
+        },
+        "required": [
+          "matched_event_count",
+          "warnings"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScalarDataComparisonSparkline": {
+        "type": "object",
+        "properties": {
+          "interval": {
+            "type": "string"
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "interval",
+          "buckets",
+          "values"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScalarDataComparison": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date_range": {
+            "$ref": "#/components/schemas/ChartQueryDateRange",
+            "description": "Server-derived; the UI labels the delta with this rather than re-deriving it"
+          },
+          "sparkline": {
+            "$ref": "#/components/schemas/ChartResultScalarDataComparisonSparkline"
+          }
+        },
+        "required": [
+          "value",
+          "date_range"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScalarDataSparkline": {
+        "type": "object",
+        "properties": {
+          "interval": {
+            "type": "string"
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "interval",
+          "buckets",
+          "values"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScalarData": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/ChartResultScalarDataComparison"
+          },
+          "sparkline": {
+            "$ref": "#/components/schemas/ChartResultScalarDataSparkline"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultHistogramMeta": {
+        "type": "object",
+        "properties": {
+          "matched_event_count": {
+            "type": "number",
+            "description": "Rows in scope after filters and dedup; powers empty-state vs error-state UI"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultWarning"
+            }
+          }
+        },
+        "required": [
+          "matched_event_count",
+          "warnings"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultHistogramDataBinsItem": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultHistogramData": {
+        "type": "object",
+        "properties": {
+          "bins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultHistogramDataBinsItem"
+            }
+          },
+          "markers": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "bins",
+          "markers"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultTableMetaRanking": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number"
+          },
+          "total_categories": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "limit",
+          "total_categories"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultTableMeta": {
+        "type": "object",
+        "properties": {
+          "matched_event_count": {
+            "type": "number",
+            "description": "Rows in scope after filters and dedup; powers empty-state vs error-state UI"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultWarning"
+            }
+          },
+          "ranking": {
+            "$ref": "#/components/schemas/ChartResultTableMetaRanking"
+          }
+        },
+        "required": [
+          "matched_event_count",
+          "warnings",
+          "ranking"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultTableDataRowsItem": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable within a response; safe as a React key"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display string; \"(empty)\" for a stored empty string"
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Machine-readable identity, e.g. { \"config.model\": \"gpt-4o\" }"
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "dimensions",
+          "values"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultTableData": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultTableDataRowsItem"
+            }
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScatterMeta": {
+        "type": "object",
+        "properties": {
+          "matched_event_count": {
+            "type": "number",
+            "description": "Rows in scope after filters and dedup; powers empty-state vs error-state UI"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultWarning"
+            }
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "True when the group count exceeded the limit"
+          }
+        },
+        "required": [
+          "matched_event_count",
+          "warnings",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScatterDataPointsItem": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable within a response; safe as a React key"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display string; \"(empty)\" for a stored empty string"
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Machine-readable identity, e.g. { \"config.model\": \"gpt-4o\" }"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "weight": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "dimensions",
+          "x",
+          "y",
+          "weight"
+        ],
+        "additionalProperties": false
+      },
+      "ChartResultScatterData": {
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartResultScatterDataPointsItem"
+            }
+          }
+        },
+        "required": [
+          "points"
         ],
         "additionalProperties": false
       },
