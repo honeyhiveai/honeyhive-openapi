@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: HoneyHive Control Plane API
   description: |
-    Manage HoneyHive control-plane resources: workspaces, projects and alerts.
+    Manage HoneyHive control-plane resources: workspaces, projects and alerts, and read org usage.
 
     Authentication requires a fine-grained control-plane API key (values
     start with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.
@@ -14,7 +14,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.14.0
+  version: 1.17.0
 servers:
   - url: https://api.cp.us.honeyhive.ai
 tags:
@@ -24,6 +24,9 @@ tags:
   - name: Projects
     description: |
       Create and manage projects within a workspace. A project is the container for the events, datasets, evaluations, and alerts logged against it.
+  - name: Usage
+    description: |
+      Read an organization's usage: events and computed metrics per calendar month, and current user, workspace and project counts.
   - name: Virtual Dataplanes
     description: |
       Create and manage virtual data planes. A virtual data plane is a logical tenant boundary inside an organization, hosted on a physical cluster; several virtual data planes commonly share one cluster. Workspaces live inside a virtual data plane.
@@ -601,6 +604,102 @@ paths:
           description: Organization or cluster not found, or the caller may not create a virtual data plane here. The response does not say which.
         '409':
           description: The `slug` is already taken by another scope
+  /v1/orgs/{org_id}/usage:
+    get:
+      tags:
+        - Usage
+      operationId: getUsage
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: get
+      x-ts-sdk-name: get
+      summary: Get usage for a date range
+      description: |
+        Return an organization's usage for `[start_date, end_date)`, in one bucket per calendar
+        month, clipped to the range and ending at the current month. The organization is identified
+        by the `org_id` path parameter alone; the `x-hh-org-id` header does not participate.
+
+        An event counts in the month that contains its `start_time`, which the client sets when it
+        logs the event, so usage for a past month can still grow. `metrics_computed_count` is the
+        number of `metrics.*` keys on those events. Results are always split by `event_type`; pass
+        `group_by` to also split them by workspace or by project. Every row is returned in one
+        response; there is no pagination. Quarter- and year-to-date totals are for the caller to
+        sum across ranges.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the organization
+        - in: query
+          name: start_date
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Inclusive start, `YYYY-MM-DD` (UTC), no later than today
+        - in: query
+          name: end_date
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Exclusive end, `YYYY-MM-DD` (UTC), 1 to 92 days after `start_date`
+        - in: query
+          name: group_by
+          required: false
+          schema:
+            type: string
+            enum:
+              - workspace_id
+              - project_id
+          description: |
+            Split results by workspace, or by project (each project row also carries its workspace)
+      responses:
+        '200':
+          description: Usage computed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUsageResponse'
+        '400':
+          description: Missing or malformed dates, a range outside 1 to 92 days, a `start_date` after today, an unknown `group_by`, or an unknown query parameter
+        '404':
+          description: Organization not found, or the caller may not read its usage. The response does not say which.
+        '422':
+          description: The usage query exceeded its time budget (`errorCode` `query_timeout`) or its memory budget (`errorCode` `query_too_large`). Request a shorter range, or omit `group_by`.
+  /v1/orgs/{org_id}/usage/current:
+    get:
+      tags:
+        - Usage
+      operationId: getUsageCurrent
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: current
+      x-ts-sdk-name: getCurrent
+      summary: Get current usage counts
+      description: |
+        Return an organization's current counts, independent of any date range: members who
+        completed onboarding, and non-archived workspaces and projects. The organization is
+        identified by the `org_id` path parameter alone; the `x-hh-org-id` header does not
+        participate.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the organization
+      responses:
+        '200':
+          description: Counts read successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUsageCurrentResponse'
+        '404':
+          description: Organization not found, or the caller may not read its usage. The response does not say which.
   /v1/virtual_dataplanes/{virtual_dataplane_id}:
     get:
       tags:
@@ -1316,6 +1415,132 @@ components:
         - data
       additionalProperties: false
       description: The deleted (archived) project
+    GetUsageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Usage'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: Org usage for a date range, in monthly buckets
+    Usage:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          description: ISO-8601 timestamp the response was computed at
+        start_date:
+          type: string
+          description: Calendar date, YYYY-MM-DD (UTC)
+        end_date:
+          type: string
+          description: Calendar date, YYYY-MM-DD (UTC)
+        buckets:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsageBucket'
+          description: One bucket per calendar month in the range, through the current month. Every row is returned; there is no pagination
+      required:
+        - generated_at
+        - start_date
+        - end_date
+        - buckets
+      additionalProperties: false
+    UsageBucket:
+      type: object
+      properties:
+        start_date:
+          type: string
+          description: Inclusive bucket start
+        end_date:
+          type: string
+          description: Exclusive bucket end
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsageResult'
+      required:
+        - start_date
+        - end_date
+        - results
+      additionalProperties: false
+    UsageResult:
+      type: object
+      properties:
+        workspace_id:
+          type: string
+        workspace_slug:
+          type: string
+          description: The workspace scope name
+        workspace_label:
+          type: string
+          description: The workspace scope label, or the slug if the label is empty
+        project_id:
+          type: string
+        project_slug:
+          type: string
+          description: The project scope name
+        project_label:
+          type: string
+          description: The project scope label, or the slug if the label is empty
+        event_type:
+          type: string
+        event_count:
+          type: integer
+          minimum: 0
+        metrics_computed_count:
+          type: integer
+          minimum: 0
+          description: Number of metrics.* keys on the events
+      required:
+        - event_type
+        - event_count
+        - metrics_computed_count
+      additionalProperties: false
+    GetUsageCurrentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/UsageCurrent'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: Point-in-time org counts
+    UsageCurrent:
+      type: object
+      properties:
+        as_of:
+          type: string
+          description: ISO-8601 timestamp the counts were read at
+        user_count:
+          type: integer
+          minimum: 0
+          description: Members who completed onboarding
+        workspace_count:
+          type: integer
+          minimum: 0
+          description: Non-archived workspaces
+        project_count:
+          type: integer
+          minimum: 0
+          description: Non-archived projects
+      required:
+        - as_of
+        - user_count
+        - workspace_count
+        - project_count
+      additionalProperties: false
     VirtualDataplaneItem:
       type: object
       properties:
