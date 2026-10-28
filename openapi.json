@@ -837,6 +837,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "getCharts",
           "discriminator": "project_id"
@@ -869,6 +870,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "createChart",
           "discriminator": "project_id"
@@ -913,6 +915,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "getChart",
           "discriminator": "project_id"
@@ -956,6 +959,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "updateChart",
           "discriminator": "project_id"
@@ -1009,6 +1013,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "deleteChart",
           "discriminator": "project_id"
@@ -1949,6 +1954,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "getDatapoints",
           "discriminator": "project_id"
@@ -2004,6 +2010,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "createDatapoint",
           "discriminator": "project_id"
@@ -2048,6 +2055,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "batchCreateDatapoints",
           "discriminator": "project_id"
@@ -2092,6 +2100,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "getDatapoint",
           "discriminator": "project_id"
@@ -2147,6 +2156,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "updateDatapoint",
           "discriminator": "project_id"
@@ -2186,6 +2196,7 @@
         "summary": "Delete a specific datapoint (deprecated)",
         "operationId": "deleteDatapointLegacy",
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "deleteDatapoint",
           "discriminator": "project_id"
@@ -2554,6 +2565,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "getDatasets",
           "discriminator": "project_id"
@@ -2611,6 +2623,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Create a dataset (deprecated)",
         "description": "Deprecated. Use `POST /v1/projects/{project_id}/datasets` with a data plane API key instead. Creates a new dataset with an optional name, description, and initial set of datapoint IDs.",
         "requestBody": {
@@ -2650,7 +2663,7 @@
         "x-ts-sdk-exclude": true,
         "deprecated": true,
         "x-hidden": true,
-        "summary": "Update a dataset (deprecated)",
+        "summary": "Update a dataset by body ID (deprecated)",
         "description": "Deprecated. Use `PATCH /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead.",
         "requestBody": {
           "required": true,
@@ -2689,7 +2702,7 @@
         "x-ts-sdk-exclude": true,
         "deprecated": true,
         "x-hidden": true,
-        "summary": "Delete a dataset (deprecated)",
+        "summary": "Delete a dataset by query ID (deprecated)",
         "description": "Deprecated. Use `DELETE /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead.",
         "parameters": [
           {
@@ -2734,6 +2747,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "summary": "Update a dataset (deprecated)",
         "description": "Deprecated. Use `PATCH /v1/projects/{project_id}/datasets/{dataset_id}` with a data plane API key instead. Updates a dataset's name, description, or list of datapoint IDs.",
         "parameters": [
@@ -2781,6 +2795,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "deleteDataset",
           "discriminator": "project_id"
@@ -2827,6 +2842,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "addDatapoints",
           "discriminator": "project_id"
@@ -2882,6 +2898,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "removeDatapoint",
           "discriminator": "project_id"
@@ -2928,7 +2945,7 @@
         "tags": [
           "Datasets"
         ],
-        "summary": "Remove a datapoint from a dataset (deprecated)",
+        "summary": "Remove a datapoint from a dataset by short path (deprecated)",
         "operationId": "removeDatapointShortPathLegacy",
         "security": [
           {
@@ -3377,6 +3394,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3422,6 +3440,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3576,6 +3595,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3631,6 +3651,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3677,6 +3698,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3733,6 +3755,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3781,6 +3804,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3846,6 +3870,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -3923,6 +3948,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -4098,6 +4124,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -4286,7 +4313,7 @@
     },
     "/v1/runs/{new_run_id}/compare-with/{old_run_id}": {
       "get": {
-        "summary": "Retrieve experiment comparison (deprecated)",
+        "summary": "Retrieve experiment comparison via compare-with (deprecated)",
         "operationId": "getExperimentComparisonCompareWithLegacy",
         "security": [
           {
@@ -4384,6 +4411,7 @@
           "discriminator": "project_id"
         },
         "deprecated": true,
+        "x-hidden": true,
         "tags": [
           "Experiments"
         ],
@@ -4486,7 +4514,7 @@
     },
     "/v1/runs/compare/events": {
       "get": {
-        "summary": "Compare events between two experiment runs (deprecated)",
+        "summary": "Compare events between two experiment runs by query IDs (deprecated)",
         "operationId": "getExperimentCompareEventsQueryIdLegacy",
         "security": [
           {
@@ -5402,6 +5430,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "getQueues",
           "discriminator": "project_id"
@@ -5445,6 +5474,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "createQueue",
           "discriminator": "project_id"
@@ -5592,6 +5622,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "getQueue",
           "discriminator": "project_id"
@@ -5638,6 +5669,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "updateQueue",
           "discriminator": "project_id"
@@ -5694,6 +5726,7 @@
           }
         ],
         "deprecated": true,
+        "x-hidden": true,
         "x-twin": {
           "op": "deleteQueue",
           "discriminator": "project_id"
