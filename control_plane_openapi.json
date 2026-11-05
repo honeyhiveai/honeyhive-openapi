@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HoneyHive Control Plane API",
-    "description": "Manage HoneyHive control-plane resources: workspaces, projects and alerts, and read org usage.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nProject API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
+    "description": "Manage HoneyHive control-plane resources: organizations, workspaces, projects and alerts, and\nread org usage.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nProject API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
@@ -18,6 +18,10 @@
     {
       "name": "Alerts",
       "description": "Define and manage alerts. Alerts evaluate event metrics on a schedule and trigger notifications when configured thresholds are crossed.\n"
+    },
+    {
+      "name": "Orgs",
+      "description": "Read an organization's display name and the email domains whose users join it automatically when they sign in, and update its display name.\n"
     },
     {
       "name": "Projects",
@@ -659,6 +663,103 @@
           },
           "409": {
             "description": "The workspace still has active projects and `dangerously_delete_child_scopes` was not set"
+          }
+        }
+      }
+    },
+    "/v1/orgs/{org_id}": {
+      "get": {
+        "tags": [
+          "Orgs"
+        ],
+        "operationId": "getOrg",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get",
+        "x-ts-sdk-name": "get",
+        "summary": "Get an organization",
+        "description": "Retrieve an organization's display name and email domains. The organization is identified by\nthe `org_id` path parameter alone; the `x-hh-org-id` header does not participate. Your\norganization's id is listed on the API keys page of your organization settings in the\nHoneyHive app.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetOrgResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Organization not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Orgs"
+        ],
+        "operationId": "updateOrg",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Update an organization",
+        "description": "Update an organization's display name. The organization is identified by the `org_id` path\nparameter alone; the `x-hh-org-id` header does not participate.\n\nThe organization's email domains cannot be changed through the API. Set them in the\norganization settings of the HoneyHive app.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchOrgRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Organization updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateOrgResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "404": {
+            "description": "Organization not found"
           }
         }
       }
@@ -1708,6 +1809,104 @@
         "additionalProperties": false,
         "description": "The created alert"
       },
+      "OrgItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Organization display name"
+          },
+          "email_domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Email domains for automatic membership. A user who signs in through SSO or a social login with an email at one of these domains joins the organization. The API cannot change them. Set them in the organization settings of the HoneyHive app."
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email_domains",
+          "created_at"
+        ],
+        "additionalProperties": false,
+        "description": "Organization object"
+      },
+      "PatchOrgRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Organization display name. Allowed characters are the letters A-Z and a-z (no accented letters), digits, space, underscore, hyphen, apostrophe and ampersand, and the name must not start with a space."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for updating an organization"
+      },
+      "GetOrgResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrgItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "A single organization"
+      },
+      "UpdateOrgResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrgItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The updated organization"
+      },
       "ProjectItem": {
         "type": "object",
         "properties": {
@@ -2090,7 +2289,7 @@
           "name": {
             "type": "string",
             "maxLength": 200,
-            "description": "Virtual dataplane display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+            "description": "Virtual dataplane display name. Allowed characters are the letters A-Z and a-z (no accented letters), digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one of those letters or a digit, and must not start with a space."
           },
           "slug": {
             "type": "string",
@@ -2121,7 +2320,7 @@
           "name": {
             "type": "string",
             "maxLength": 200,
-            "description": "Virtual dataplane display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+            "description": "Virtual dataplane display name. Allowed characters are the letters A-Z and a-z (no accented letters), digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one of those letters or a digit, and must not start with a space."
           }
         },
         "additionalProperties": false,
@@ -2250,7 +2449,7 @@
           "name": {
             "type": "string",
             "maxLength": 200,
-            "description": "Workspace display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+            "description": "Workspace display name. Allowed characters are the letters A-Z and a-z (no accented letters), digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one of those letters or a digit, and must not start with a space."
           },
           "slug": {
             "type": "string",
@@ -2280,7 +2479,7 @@
           "name": {
             "type": "string",
             "maxLength": 200,
-            "description": "Workspace display name. Allowed characters are letters, digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one letter or digit, and must not start with a space."
+            "description": "Workspace display name. Allowed characters are the letters A-Z and a-z (no accented letters), digits, space, underscore, hyphen, apostrophe and ampersand. The name must contain at least one of those letters or a digit, and must not start with a space."
           },
           "description": {
             "type": "string",
