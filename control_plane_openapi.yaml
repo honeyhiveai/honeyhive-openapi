@@ -2,8 +2,8 @@ openapi: 3.1.0
 info:
   title: HoneyHive Control Plane API
   description: |
-    Manage HoneyHive control-plane resources: organizations, workspaces, projects and alerts, and
-    read org usage.
+    Manage HoneyHive control-plane resources: organizations with their roles and templates,
+    workspaces with their templates, projects and alerts, and read org usage.
 
     Authentication requires a fine-grained control-plane API key (values
     start with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.
@@ -15,25 +15,34 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.17.0
+  version: 1.18.0
 servers:
   - url: https://api.cp.us.honeyhive.ai
 tags:
   - name: Alerts
     description: |
       Define and manage alerts. Alerts evaluate event metrics on a schedule and trigger notifications when configured thresholds are crossed.
+  - name: Org Templates
+    description: |
+      Read and replace an organization's templates manifest, which defines the metrics and charts that new projects start with. Each workspace gets its own copy when it is created, so a new version reaches an existing workspace's projects only where that workspace's manifest merges with the organization's.
   - name: Orgs
     description: |
       Read an organization's display name and the email domains whose users join it automatically when they sign in, and update its display name.
   - name: Projects
     description: |
       Create and manage projects within a workspace. A project is the container for the events, datasets, evaluations, and alerts logged against it.
+  - name: Roles
+    description: |
+      Read and replace an organization's roles manifest, which defines its roles and the permissions each one grants. Available on self-hosted deployments only.
   - name: Usage
     description: |
       Read an organization's usage: events and computed metrics per calendar month, and current user, workspace and project counts.
   - name: Virtual Dataplanes
     description: |
       Create and manage virtual data planes. A virtual data plane is a logical tenant boundary inside an organization, hosted on a physical cluster; several virtual data planes commonly share one cluster. Workspaces live inside a virtual data plane.
+  - name: Workspace Templates
+    description: |
+      Read and replace a workspace's templates manifest, which defines the metrics and charts that new projects in the workspace start with.
   - name: Workspaces
     description: |
       Read and manage workspaces. A workspace groups the projects belonging to one team or environment, and owns the API keys and AI provider secrets its projects share.
@@ -530,6 +539,85 @@ paths:
           description: Workspace not found
         '409':
           description: The workspace still has active projects and `dangerously_delete_child_scopes` was not set
+  /v1/workspaces/{workspace_id}/templates_manifest:
+    get:
+      tags:
+        - Workspace Templates
+      operationId: getWorkspaceTemplatesManifest
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: get
+      x-ts-sdk-name: get
+      summary: Get a workspace's templates manifest
+      description: |
+        Return the latest version of a workspace's templates manifest: the YAML that defines the
+        metrics and charts that new projects in the workspace start with. The workspace is
+        identified by the `workspace_id` path parameter alone. The `x-hh-workspace-id` header does
+        not participate.
+
+        A workspace starts with a copy of its organization's manifest. Its projects use the
+        workspace's manifest, together with the organization's only when the workspace's manifest
+        sets `config.merge_strategy` to `merge`.
+      parameters:
+        - in: path
+          name: workspace_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the workspace
+      responses:
+        '200':
+          description: Templates manifest retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTemplatesManifestResponse'
+        '404':
+          description: Workspace not found
+    put:
+      tags:
+        - Workspace Templates
+      operationId: updateWorkspaceTemplatesManifest
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: update
+      x-ts-sdk-name: update
+      summary: Replace a workspace's templates manifest
+      description: |
+        Save a new version of a workspace's templates manifest, which becomes the latest version.
+        It decides the metrics and charts that projects created afterward in the workspace start
+        with. Existing projects are not changed. The workspace is identified by the `workspace_id`
+        path parameter alone. The `x-hh-workspace-id` header does not participate.
+
+        A workspace manifest cannot define `workspace_templates`.
+
+        When an API key makes the request and the workspace's latest version already has this
+        content, nothing is saved and that version is returned, so applying the same manifest
+        repeatedly is safe.
+      parameters:
+        - in: path
+          name: workspace_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutWorkspaceTemplatesManifestRequest'
+      responses:
+        '200':
+          description: Templates manifest saved, or returned unchanged for an API key whose content matched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateTemplatesManifestResponse'
+        '400':
+          description: Invalid request body, or YAML that fails templates manifest validation for a workspace
+        '404':
+          description: Workspace not found
   /v1/orgs/{org_id}:
     get:
       tags:
@@ -598,6 +686,176 @@ paths:
                 $ref: '#/components/schemas/UpdateOrgResponse'
         '400':
           description: Invalid request body
+        '404':
+          description: Organization not found
+  /v1/orgs/{org_id}/roles_manifest:
+    get:
+      tags:
+        - Roles
+      operationId: getRolesManifest
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: get
+      x-ts-sdk-name: get
+      summary: Get an organization's roles manifest
+      description: |
+        Return the latest version of an organization's roles manifest: the YAML that defines its
+        roles and the permissions each one grants, as the organization settings page in the
+        HoneyHive app shows it. The organization is identified by the `org_id` path parameter
+        alone. The `x-hh-org-id` header does not participate.
+
+        Available on self-hosted deployments only. Elsewhere this operation returns 404. An API key
+        that carries `org.roles.get` or `org.roles.set` can carry no permission other than the
+        roles and membership permissions, and is created on an organization.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the organization
+      responses:
+        '200':
+          description: Roles manifest retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRolesManifestResponse'
+        '404':
+          description: Organization not found, the caller may not read its roles, or the deployment is not self-hosted. The response does not say which.
+    put:
+      tags:
+        - Roles
+      operationId: updateRolesManifest
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: update
+      x-ts-sdk-name: update
+      summary: Replace an organization's roles manifest
+      description: |
+        Save a new version of an organization's roles manifest, which becomes the latest version.
+        Every member's current session must reauthorize, so the new roles apply to everyone
+        immediately. The organization is identified by the `org_id` path parameter alone. The
+        `x-hh-org-id` header does not participate.
+
+        When an API key makes the request, two further rules apply:
+
+        - If the organization's current roles manifest already has this content, nothing is saved
+          and that version is returned, so applying the same manifest repeatedly is safe.
+        - A manifest that would leave no onboarded, active member holding `org.roles.get`,
+          `org.roles.set`, `org.fine_grained_api_key_cp.list` and
+          `org.fine_grained_api_key_cp.delete` is refused with 409, so someone in the organization
+          can always revoke the key.
+
+        Available on self-hosted deployments only. Elsewhere this operation returns 404. An API key
+        that carries `org.roles.get` or `org.roles.set` can carry no permission other than the
+        roles and membership permissions, and is created on an organization.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutRolesManifestRequest'
+      responses:
+        '200':
+          description: Roles manifest saved, or returned unchanged for an API key whose content matched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateRolesManifestResponse'
+        '400':
+          description: Invalid request body, or YAML that fails roles manifest validation
+        '404':
+          description: Organization not found, the caller may not update its roles, or the deployment is not self-hosted. The response does not say which.
+        '409':
+          description: The request came from an API key, and the manifest would leave no onboarded, active member able to manage roles and revoke API keys
+  /v1/orgs/{org_id}/templates_manifest:
+    get:
+      tags:
+        - Org Templates
+      operationId: getOrgTemplatesManifest
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: get
+      x-ts-sdk-name: get
+      summary: Get an organization's templates manifest
+      description: |
+        Return the latest version of an organization's templates manifest: the YAML that defines
+        the metrics and charts that new projects start with, as the templates page of the
+        organization settings in the HoneyHive app shows it. The organization is identified by the
+        `org_id` path parameter alone. The `x-hh-org-id` header does not participate.
+
+        A workspace gets a copy of this manifest when it is created, and its projects use that
+        copy. They use this manifest as well only when the workspace's manifest sets
+        `config.merge_strategy` to `merge`.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the organization
+      responses:
+        '200':
+          description: Templates manifest retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTemplatesManifestResponse'
+        '404':
+          description: Organization not found
+    put:
+      tags:
+        - Org Templates
+      operationId: updateOrgTemplatesManifest
+      security:
+        - ControlPlaneApiKey: []
+      x-cli-name: update
+      x-ts-sdk-name: update
+      summary: Replace an organization's templates manifest
+      description: |
+        Save a new version of an organization's templates manifest, which becomes the latest
+        version. Existing projects are not changed. The organization is identified by the `org_id`
+        path parameter alone. The `x-hh-org-id` header does not participate.
+
+        A workspace gets a copy of this manifest when it is created, and its projects use that
+        copy. They use this manifest as well only when the workspace's manifest sets
+        `config.merge_strategy` to `merge`. A new version therefore reaches projects in
+        workspaces created afterward, and in existing workspaces whose manifest merges. To change
+        what new projects in an existing workspace start with, update that workspace's manifest.
+
+        When an API key makes the request and the organization's latest version already has this
+        content, nothing is saved and that version is returned, so applying the same manifest
+        repeatedly is safe.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutOrgTemplatesManifestRequest'
+      responses:
+        '200':
+          description: Templates manifest saved, or returned unchanged for an API key whose content matched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateTemplatesManifestResponse'
+        '400':
+          description: Invalid request body, or YAML that fails templates manifest validation
         '404':
           description: Organization not found
   /v1/orgs/{org_id}/virtual_dataplanes:
@@ -1553,6 +1811,104 @@ components:
         - data
       additionalProperties: false
       description: The deleted (archived) project
+    ManifestItem:
+      type: object
+      properties:
+        yaml_content:
+          type: string
+          description: The manifest, as the YAML it was saved with
+        created_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+          description: When this version was saved
+      required:
+        - yaml_content
+        - created_at
+      additionalProperties: false
+      description: One version of a manifest
+    PutRolesManifestRequest:
+      type: object
+      properties:
+        yaml_content:
+          type: string
+          minLength: 1
+          description: The roles manifest, as YAML. It must parse and pass roles manifest validation.
+      required:
+        - yaml_content
+      additionalProperties: false
+      description: Request body for replacing an organization's roles manifest
+    GetRolesManifestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ManifestItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The latest version of an organization's roles manifest
+    UpdateRolesManifestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ManifestItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The organization's roles manifest after the update
+    PutOrgTemplatesManifestRequest:
+      type: object
+      properties:
+        yaml_content:
+          type: string
+          minLength: 1
+          description: The templates manifest, as YAML. It must parse and pass templates manifest validation for an organization.
+      required:
+        - yaml_content
+      additionalProperties: false
+      description: Request body for replacing an organization's templates manifest
+    PutWorkspaceTemplatesManifestRequest:
+      type: object
+      properties:
+        yaml_content:
+          type: string
+          minLength: 1
+          description: The templates manifest, as YAML. It must parse and pass templates manifest validation for a workspace, which forbids `workspace_templates`.
+      required:
+        - yaml_content
+      additionalProperties: false
+      description: Request body for replacing a workspace's templates manifest
+    GetTemplatesManifestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ManifestItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The latest version of an organization's or a workspace's templates manifest
+    UpdateTemplatesManifestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ManifestItem'
+      required:
+        - success
+        - data
+      additionalProperties: false
+      description: The templates manifest after the update
     GetUsageResponse:
       type: object
       properties:
