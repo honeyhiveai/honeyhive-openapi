@@ -4,7 +4,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.17.0
+  version: 1.18.0
 servers:
   - url: https://api.dp1.us.honeyhive.ai
 tags:
@@ -23,6 +23,9 @@ tags:
   - name: Datasets
     description: |
       Curate collections of datapoints used as test sets for evaluations and experiments.
+  - name: Evaluators
+    description: |
+      Manage project-scoped evaluator definitions, immutable versions, publication and archival. Requires a fine-grained data plane API key.
   - name: Events
     description: |
       Read and write trace events. Events are the spans that capture every step of an AI application's execution.
@@ -1121,6 +1124,512 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateIngestionApiKeyResponse'
+  /v1/projects/{project_id}/sessions/deletion_requests:
+    post:
+      tags:
+        - Sessions
+      operationId: createSessionDeletionRequest
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: create-deletion-request
+      x-ts-sdk-name: createDeletionRequest
+      summary: Request deletion of sessions
+      description: "Request deletion of up to 1000 sessions in a project, by session id. The call records the request and returns at once with a request id. A scheduled job then deletes the sessions, so read the request to follow its progress. A session id that does not exist completes as a no-op. A session is `completed` when its data is deleted from object storage and the session is hidden from every query. The physical removal from the query store follows in a daily purge. The caller's key must carry `project.session.delete` for the project. Session deletion is opt-in on a self-hosted data plane: on a data plane where the session deletion job is not enabled, this operation answers 501."
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project the sessions belong to
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionDeletionRequestRequest'
+      responses:
+        '200':
+          description: Deletion request recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSessionDeletionRequestResponse'
+        '400':
+          description: The request body is invalid, for example no session ids or more than 1000.
+        '404':
+          description: No project with the given `project_id` exists in the caller's scope, or the caller's key does not carry `project.session.delete` for it.
+        '501':
+          description: The session deletion job is not enabled on this data plane.
+  /v1/projects/{project_id}/sessions/deletion_requests/{deletion_request_id}:
+    get:
+      tags:
+        - Sessions
+      operationId: getSessionDeletionRequest
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: get-deletion-request
+      x-ts-sdk-name: getDeletionRequest
+      summary: Get a session deletion request
+      description: Retrieve the status of a session deletion request and how many of its sessions are pending, processing, completed or failed. `pending` and `processing` mean work remains, and every other status is final. `completed` means every session is deleted from object storage and hidden from every query, before the daily purge removes them from the query store. `failed` means at least one session failed, and other sessions in the request can be completed, so read `session_counts` for the number in each state. The caller's key must carry `project.session.delete` for the project.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project the request belongs to
+        - in: path
+          name: deletion_request_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the deletion request
+      responses:
+        '200':
+          description: Deletion request retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetSessionDeletionRequestResponse'
+        '404':
+          description: No deletion request with the given `deletion_request_id` exists in the project, or the caller's key does not carry `project.session.delete` for the project.
+  /v1/projects/{project_id}/evaluators:
+    get:
+      tags:
+        - Evaluators
+      operationId: listEvaluators
+      summary: List evaluators
+      description: List active evaluators using their latest definitions. Archived evaluators are excluded. Requires project.evaluator.list.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: list
+      x-cli-name: list
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: One-based page number. (page - 1) × limit must not exceed 2147483647.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of evaluators or versions per page.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEvaluatorsResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project not found or unavailable to the caller.
+    post:
+      tags:
+        - Evaluators
+      operationId: createEvaluator
+      summary: Create an evaluator
+      description: Create a project-scoped evaluator and immutable version 1. Slugs are unique within a project and cannot subsequently be changed. Requires project.evaluator.post; publish=true additionally requires project.evaluator.publish.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: create
+      x-cli-name: create
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvaluatorRequest'
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateEvaluatorResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project not found or unavailable to the caller.
+        '409':
+          description: An evaluator with this slug already exists in the project.
+  /v1/projects/{project_id}/evaluators/{evaluator_id_or_slug}:
+    get:
+      tags:
+        - Evaluators
+      operationId: getEvaluator
+      summary: Get the latest evaluator version
+      description: Return the latest definition with current lifecycle state, including archived evaluators. Requires project.evaluator.get.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: get
+      x-cli-name: get
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: path
+          name: evaluator_id_or_slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: Evaluator ULID or its immutable, case-sensitive project-unique slug.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEvaluatorResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project or evaluator not found or unavailable to the caller.
+    put:
+      tags:
+        - Evaluators
+      operationId: replaceEvaluator
+      summary: Replace an evaluator definition
+      description: Replace the complete definition of an active evaluator. A changed definition creates the next server-assigned version; an identical definition retains its version and message. Requires project.evaluator.update; publish=true additionally requires project.evaluator.publish. Archived evaluators return 409.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: replace
+      x-cli-name: replace
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: path
+          name: evaluator_id_or_slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: Evaluator ULID or its immutable, case-sensitive project-unique slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceUpdateEvaluatorRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplaceUpdateEvaluatorResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project or evaluator not found or unavailable to the caller.
+        '409':
+          description: The evaluator is archived, or it has reached the version limit.
+    delete:
+      tags:
+        - Evaluators
+      operationId: archiveEvaluator
+      summary: Archive an evaluator
+      description: Archive and unpublish the evaluator, preserving its slug and immutable history. Repeated archival succeeds without changing its timestamps. Requires project.evaluator.delete.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: archive
+      x-cli-name: archive
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: path
+          name: evaluator_id_or_slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: Evaluator ULID or its immutable, case-sensitive project-unique slug.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteEvaluatorResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project or evaluator not found or unavailable to the caller.
+  /v1/projects/{project_id}/evaluators/{evaluator_id_or_slug}/versions:
+    get:
+      tags:
+        - Evaluators
+      operationId: listEvaluatorVersions
+      summary: List evaluator versions
+      description: List immutable definitions in descending version order, including archived evaluators. Each item includes current evaluator lifecycle state. Requires project.evaluator.list.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: listVersions
+      x-cli-name: list-versions
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: path
+          name: evaluator_id_or_slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: Evaluator ULID or its immutable, case-sensitive project-unique slug.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: One-based page number. (page - 1) × limit must not exceed 2147483647.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of evaluators or versions per page.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEvaluatorVersionsResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project or evaluator not found or unavailable to the caller.
+  /v1/projects/{project_id}/evaluators/{evaluator_id_or_slug}/versions/{version}:
+    get:
+      tags:
+        - Evaluators
+      operationId: getEvaluatorVersion
+      summary: Get a specific evaluator version
+      description: Return the requested immutable definition with current evaluator lifecycle state. The selected version may differ from latest_version and published_version. Requires project.evaluator.get.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: getVersion
+      x-cli-name: get-version
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: path
+          name: evaluator_id_or_slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: Evaluator ULID or its immutable, case-sensitive project-unique slug.
+        - in: path
+          name: version
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          description: Server-assigned evaluator version.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEvaluatorResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project, evaluator or version not found or unavailable to the caller.
+  /v1/projects/{project_id}/evaluators/{evaluator_id_or_slug}/versions/{version}/publish:
+    post:
+      tags:
+        - Evaluators
+      operationId: publishEvaluator
+      summary: Publish an evaluator version
+      description: Select an existing version for automatic evaluation. Repeated publication of the same version is a no-op. Archived evaluators return 409. Requires project.evaluator.publish.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: publish
+      x-cli-name: publish
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: path
+          name: evaluator_id_or_slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: Evaluator ULID or its immutable, case-sensitive project-unique slug.
+        - in: path
+          name: version
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          description: Server-assigned evaluator version.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishEvaluatorResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project, evaluator or version not found or unavailable to the caller.
+        '409':
+          description: The evaluator is archived.
+  /v1/projects/{project_id}/evaluators/{evaluator_id_or_slug}/unpublish:
+    post:
+      tags:
+        - Evaluators
+      operationId: unpublishEvaluator
+      summary: Unpublish an evaluator
+      description: Clear the publication pointer without changing definitions or history. Already-unpublished and archived evaluators succeed. Requires project.evaluator.publish.
+      security:
+        - DataPlaneApiKey: []
+      x-ts-sdk-name: unpublish
+      x-cli-name: unpublish
+      x-ts-sdk-exclude: true
+      x-cli-exclude: true
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: Project that owns the evaluator; must be within the API key root scope.
+        - in: path
+          name: evaluator_id_or_slug
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: Evaluator ULID or its immutable, case-sensitive project-unique slug.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnpublishEvaluatorResponse'
+        '400':
+          description: Invalid request or parameters
+        '401':
+          description: Missing or invalid credential
+        '403':
+          description: Actor, scope or permissions denied
+        '404':
+          description: Project or evaluator not found or unavailable to the caller.
   /v1/metrics:
     get:
       tags:
@@ -6319,7 +6828,7 @@ components:
           description: Page number of results (default 1)
         ignore_order:
           type: boolean
-          description: 'Deprecated: accepted but ignored. Results are always ordered by start_time descending.'
+          description: If true, skip result ordering for faster queries. Results are otherwise ordered by start_time descending.
         evaluation_id:
           type: string
           description: Filter by evaluation/experiment run ID
@@ -8125,6 +8634,109 @@ components:
           type: string
       required:
         - message
+    CreateSessionDeletionRequestRequest:
+      type: object
+      properties:
+        session_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+          minItems: 1
+          maxItems: 1000
+          description: The sessions to delete, by session id. Up to 1000. A session id that does not exist completes as a no-op, and a repeated id counts once.
+      required:
+        - session_ids
+      additionalProperties: false
+    CreateSessionDeletionRequestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SessionDeletionRequest'
+      required:
+        - success
+        - data
+      additionalProperties: false
+    SessionDeletionRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the deletion request.
+        status:
+          $ref: '#/components/schemas/SessionDeletionRequestStatus'
+        session_counts:
+          $ref: '#/components/schemas/SessionDeletionRequestSessionCounts'
+        created_at:
+          type: string
+          format: date-time
+          description: When the request was created.
+        completed_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: When the request reached a final status. Null until then.
+      required:
+        - id
+        - status
+        - session_counts
+        - created_at
+        - completed_at
+      additionalProperties: false
+    SessionDeletionRequestStatus:
+      type: string
+      enum:
+        - pending
+        - processing
+        - completed
+        - failed
+        - partially_failed
+      description: Status of the request. `pending` and `processing` mean work remains. Every other status is final. `completed` means every session was deleted. `failed` means at least one session failed, and other sessions in the request can be completed. `session_counts` gives the number of sessions in each state. `partially_failed` is reserved and is not returned. Treat it as a final status.
+    SessionDeletionRequestSessionCounts:
+      type: object
+      properties:
+        pending:
+          type: integer
+          minimum: 0
+          description: Sessions not yet picked up for deletion.
+        processing:
+          type: integer
+          minimum: 0
+          description: Sessions being deleted.
+        completed:
+          type: integer
+          minimum: 0
+          description: Sessions deleted.
+        failed:
+          type: integer
+          minimum: 0
+          description: Sessions whose deletion failed.
+      required:
+        - pending
+        - processing
+        - completed
+        - failed
+      additionalProperties: false
+      description: How many of the sessions in the request are in each status. The counts sum to the number of distinct session ids in the request.
+    GetSessionDeletionRequestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SessionDeletionRequest'
+      required:
+        - success
+        - data
+      additionalProperties: false
     PostSessionRequest:
       type: object
       properties:
@@ -8312,6 +8924,1046 @@ components:
       required:
         - success
       description: Response from adding traces to a session
+    ScoreSchema:
+      type: object
+      additionalProperties: true
+      externalDocs:
+        url: https://json-schema.org/draft/2020-12/schema
+      description: A Draft 2020-12 schema document. Further safety restrictions will apply.
+    NumericGtTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - gt
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the selected number is greater than value.
+    NumericGteTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - gte
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the selected number is greater than or equal to value.
+    NumericLtTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - lt
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the selected number is less than value.
+    NumericLteTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - lte
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the selected number is less than or equal to value.
+    NumericEqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - eq
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the selected number equals value.
+    NumericNeqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - neq
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the selected number differs from value.
+    NumericBetweenTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - between
+        min:
+          type: number
+        max:
+          type: number
+      required:
+        - type
+        - operator
+        - min
+        - max
+      additionalProperties: false
+      description: Passes when the selected number is between min and max, including both endpoints.
+    NumericNotBetweenTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - not_between
+        min:
+          type: number
+        max:
+          type: number
+      required:
+        - type
+        - operator
+        - min
+        - max
+      additionalProperties: false
+      description: Passes when the selected number is less than min or greater than max.
+    NumericOneOfTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - one_of
+        values:
+          type: array
+          items:
+            type: number
+          minItems: 1
+          maxItems: 100
+      required:
+        - type
+        - operator
+        - values
+      additionalProperties: false
+      description: Passes when the selected number equals one of values.
+    NumericNotOneOfTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - numeric
+        operator:
+          type: string
+          enum:
+            - not_one_of
+        values:
+          type: array
+          items:
+            type: number
+          minItems: 1
+          maxItems: 100
+      required:
+        - type
+        - operator
+        - values
+      additionalProperties: false
+      description: Passes when the selected number equals none of values.
+    BooleanIsTrueTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - boolean
+        operator:
+          type: string
+          enum:
+            - is_true
+      required:
+        - type
+        - operator
+      additionalProperties: false
+      description: Passes when the selected boolean is true.
+    BooleanIsFalseTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - boolean
+        operator:
+          type: string
+          enum:
+            - is_false
+      required:
+        - type
+        - operator
+      additionalProperties: false
+      description: Passes when the selected boolean is false.
+    StringEqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - string
+        operator:
+          type: string
+          enum:
+            - eq
+        value:
+          type: string
+          maxLength: 500
+        case_sensitive:
+          type: boolean
+      required:
+        - type
+        - operator
+        - value
+        - case_sensitive
+      additionalProperties: false
+      description: Passes when the selected string equals value; case_sensitive controls case matching.
+    StringNeqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - string
+        operator:
+          type: string
+          enum:
+            - neq
+        value:
+          type: string
+          maxLength: 500
+        case_sensitive:
+          type: boolean
+      required:
+        - type
+        - operator
+        - value
+        - case_sensitive
+      additionalProperties: false
+      description: Passes when the selected string differs from value; case_sensitive controls case matching.
+    StringContainsTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - string
+        operator:
+          type: string
+          enum:
+            - contains
+        value:
+          type: string
+          maxLength: 500
+        case_sensitive:
+          type: boolean
+        whole_word:
+          type: boolean
+      required:
+        - type
+        - operator
+        - value
+        - case_sensitive
+        - whole_word
+      additionalProperties: false
+      description: Passes when the selected string contains the literal value; case_sensitive controls case matching and whole_word requires Unicode word boundaries.
+    StringOneOfTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - string
+        operator:
+          type: string
+          enum:
+            - one_of
+        values:
+          type: array
+          items:
+            type: string
+            maxLength: 500
+          minItems: 1
+          maxItems: 100
+        case_sensitive:
+          type: boolean
+      required:
+        - type
+        - operator
+        - values
+        - case_sensitive
+      additionalProperties: false
+      description: Passes when the selected string equals one of values; case_sensitive controls case matching.
+    StringNotOneOfTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - string
+        operator:
+          type: string
+          enum:
+            - not_one_of
+        values:
+          type: array
+          items:
+            type: string
+            maxLength: 500
+          minItems: 1
+          maxItems: 100
+        case_sensitive:
+          type: boolean
+      required:
+        - type
+        - operator
+        - values
+        - case_sensitive
+      additionalProperties: false
+      description: Passes when the selected string equals none of values; case_sensitive controls case matching.
+    CategoricalNumericGtTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - gt
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category is greater than value. A null mapping always fails this rule.
+    CategoricalNumericGteTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - gte
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category is greater than or equal to value. A null mapping always fails this rule.
+    CategoricalNumericLtTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - lt
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category is less than value. A null mapping always fails this rule.
+    CategoricalNumericLteTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - lte
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category is less than or equal to value. A null mapping always fails this rule.
+    CategoricalNumericEqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - eq
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category equals value. A null mapping always fails this rule.
+    CategoricalNumericNeqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - neq
+        value:
+          type: number
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category does not equal value. A null mapping always fails this rule.
+    CategoricalNumericBetweenTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - between
+        min:
+          type: number
+        max:
+          type: number
+      required:
+        - type
+        - operator
+        - min
+        - max
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category is between min and max, inclusive. A null mapping always fails this rule.
+    CategoricalNumericNotBetweenTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - not_between
+        min:
+          type: number
+        max:
+          type: number
+      required:
+        - type
+        - operator
+        - min
+        - max
+      additionalProperties: false
+      description: Passes when the numeric score mapped to the category is outside the inclusive min-to-max range. A null mapping always fails this rule.
+    CategoricalCategoryEqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - category_eq
+        value:
+          type: string
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the category label equals value. The numeric mapping is not used.
+    CategoricalCategoryNeqTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - category_neq
+        value:
+          type: string
+      required:
+        - type
+        - operator
+        - value
+      additionalProperties: false
+      description: Passes when the category label does not equal value. The numeric mapping is not used.
+    CategoricalCategoryOneOfTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - category_one_of
+        values:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+      required:
+        - type
+        - operator
+        - values
+      additionalProperties: false
+      description: Passes when the category label is in values. The numeric mapping is not used.
+    CategoricalCategoryNotOneOfTestCriteria:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - categorical
+        operator:
+          type: string
+          enum:
+            - category_not_one_of
+        values:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+      required:
+        - type
+        - operator
+        - values
+      additionalProperties: false
+      description: Passes when the category label is not in values. The numeric mapping is not used.
+    EvaluatorTestCriteria:
+      type: object
+      properties:
+        field:
+          type: string
+          minLength: 1
+        criteria:
+          anyOf:
+            - $ref: '#/components/schemas/NumericGtTestCriteria'
+            - $ref: '#/components/schemas/NumericGteTestCriteria'
+            - $ref: '#/components/schemas/NumericLtTestCriteria'
+            - $ref: '#/components/schemas/NumericLteTestCriteria'
+            - $ref: '#/components/schemas/NumericEqTestCriteria'
+            - $ref: '#/components/schemas/NumericNeqTestCriteria'
+            - $ref: '#/components/schemas/NumericBetweenTestCriteria'
+            - $ref: '#/components/schemas/NumericNotBetweenTestCriteria'
+            - $ref: '#/components/schemas/NumericOneOfTestCriteria'
+            - $ref: '#/components/schemas/NumericNotOneOfTestCriteria'
+            - $ref: '#/components/schemas/BooleanIsTrueTestCriteria'
+            - $ref: '#/components/schemas/BooleanIsFalseTestCriteria'
+            - $ref: '#/components/schemas/StringEqTestCriteria'
+            - $ref: '#/components/schemas/StringNeqTestCriteria'
+            - $ref: '#/components/schemas/StringContainsTestCriteria'
+            - $ref: '#/components/schemas/StringOneOfTestCriteria'
+            - $ref: '#/components/schemas/StringNotOneOfTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericGtTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericGteTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericLtTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericLteTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericEqTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericNeqTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericBetweenTestCriteria'
+            - $ref: '#/components/schemas/CategoricalNumericNotBetweenTestCriteria'
+            - $ref: '#/components/schemas/CategoricalCategoryEqTestCriteria'
+            - $ref: '#/components/schemas/CategoricalCategoryNeqTestCriteria'
+            - $ref: '#/components/schemas/CategoricalCategoryOneOfTestCriteria'
+            - $ref: '#/components/schemas/CategoricalCategoryNotOneOfTestCriteria'
+      required:
+        - field
+        - criteria
+      additionalProperties: false
+    EvaluatorMetadata:
+      type: object
+      properties:
+        description:
+          type: string
+      additionalProperties: false
+    EvaluatorSampling:
+      type: object
+      properties:
+        sampling_percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+      required:
+        - sampling_percentage
+      additionalProperties: false
+    EvaluatorFiltersArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/SingleFilter'
+      minItems: 1
+    EvaluatorFilters:
+      type: object
+      properties:
+        filterArray:
+          $ref: '#/components/schemas/EvaluatorFiltersArray'
+      required:
+        - filterArray
+      additionalProperties: false
+    EvaluatorCodeExecution:
+      type: object
+      properties:
+        code_snippet:
+          type: string
+          minLength: 1
+      required:
+        - code_snippet
+      additionalProperties: false
+    EvaluatorModel:
+      type: object
+      properties:
+        model_provider:
+          type: string
+          minLength: 1
+        model_name:
+          type: string
+          minLength: 1
+      required:
+        - model_provider
+        - model_name
+      additionalProperties: false
+    EvaluatorLLMExecution:
+      type: object
+      properties:
+        system_prompt:
+          type: string
+          minLength: 1
+      required:
+        - system_prompt
+      additionalProperties: false
+    PythonEvaluatorConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Evaluator display name, independent of its immutable slug.
+        metadata:
+          $ref: '#/components/schemas/EvaluatorMetadata'
+        sampling:
+          $ref: '#/components/schemas/EvaluatorSampling'
+        filters:
+          $ref: '#/components/schemas/EvaluatorFilters'
+        score_schema:
+          $ref: '#/components/schemas/ScoreSchema'
+        test_criteria:
+          $ref: '#/components/schemas/EvaluatorTestCriteria'
+        code_execution:
+          $ref: '#/components/schemas/EvaluatorCodeExecution'
+      required:
+        - name
+        - metadata
+        - sampling
+        - filters
+        - score_schema
+        - code_execution
+      additionalProperties: false
+    PythonEvaluatorDefinition:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - python
+        python:
+          $ref: '#/components/schemas/PythonEvaluatorConfig'
+      required:
+        - type
+        - python
+      additionalProperties: false
+    LLMEvaluatorConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Evaluator display name, independent of its immutable slug.
+        metadata:
+          $ref: '#/components/schemas/EvaluatorMetadata'
+        sampling:
+          $ref: '#/components/schemas/EvaluatorSampling'
+        filters:
+          $ref: '#/components/schemas/EvaluatorFilters'
+        score_schema:
+          $ref: '#/components/schemas/ScoreSchema'
+        test_criteria:
+          $ref: '#/components/schemas/EvaluatorTestCriteria'
+        model:
+          $ref: '#/components/schemas/EvaluatorModel'
+        llm_execution:
+          $ref: '#/components/schemas/EvaluatorLLMExecution'
+      required:
+        - name
+        - metadata
+        - sampling
+        - filters
+        - score_schema
+        - model
+        - llm_execution
+      additionalProperties: false
+    LLMEvaluatorDefinition:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - llm
+        llm:
+          $ref: '#/components/schemas/LLMEvaluatorConfig'
+      required:
+        - type
+        - llm
+      additionalProperties: false
+    HumanEvaluatorConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Evaluator display name, independent of its immutable slug.
+        metadata:
+          $ref: '#/components/schemas/EvaluatorMetadata'
+        score_schema:
+          $ref: '#/components/schemas/ScoreSchema'
+        test_criteria:
+          $ref: '#/components/schemas/EvaluatorTestCriteria'
+      required:
+        - name
+        - metadata
+        - score_schema
+      additionalProperties: false
+    HumanEvaluatorDefinition:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - human
+        human:
+          $ref: '#/components/schemas/HumanEvaluatorConfig'
+      required:
+        - type
+        - human
+      additionalProperties: false
+    EvaluatorDefinition:
+      oneOf:
+        - $ref: '#/components/schemas/PythonEvaluatorDefinition'
+        - $ref: '#/components/schemas/LLMEvaluatorDefinition'
+        - $ref: '#/components/schemas/HumanEvaluatorDefinition'
+      discriminator:
+        propertyName: type
+        mapping:
+          python: '#/components/schemas/PythonEvaluatorDefinition'
+          llm: '#/components/schemas/LLMEvaluatorDefinition'
+          human: '#/components/schemas/HumanEvaluatorDefinition'
+    Evaluator:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9_-]+$
+          description: Immutable, case-sensitive project-unique slug containing 1–64 ASCII letters, digits, underscores or hyphens. Must not be a valid ULID, regardless of case. Cannot change after creation.
+        is_active:
+          type: boolean
+        latest_version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        published_version:
+          type:
+            - integer
+            - 'null'
+          minimum: 1
+          maximum: 2147483647
+        version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        definition:
+          $ref: '#/components/schemas/EvaluatorDefinition'
+        message:
+          type: string
+        evaluator_created_at:
+          type: string
+          format: date-time
+        evaluator_updated_at:
+          type: string
+          format: date-time
+        version_created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - is_active
+        - latest_version
+        - published_version
+        - version
+        - definition
+        - message
+        - evaluator_created_at
+        - evaluator_updated_at
+        - version_created_at
+      additionalProperties: false
+    CreateEvaluatorRequest:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9_-]+$
+          description: Immutable, case-sensitive project-unique slug containing 1–64 ASCII letters, digits, underscores or hyphens. Must not be a valid ULID, regardless of case. Cannot change after creation.
+        definition:
+          $ref: '#/components/schemas/EvaluatorDefinition'
+        message:
+          type: string
+          default: ''
+        publish:
+          type: boolean
+          default: false
+      required:
+        - slug
+        - definition
+      additionalProperties: false
+    ReplaceUpdateEvaluatorRequest:
+      type: object
+      properties:
+        definition:
+          $ref: '#/components/schemas/EvaluatorDefinition'
+        message:
+          type: string
+        publish:
+          type: boolean
+          default: false
+      required:
+        - definition
+      additionalProperties: false
+    CreateEvaluatorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Evaluator'
+      required:
+        - success
+        - data
+      additionalProperties: false
+    GetEvaluatorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Evaluator'
+      required:
+        - success
+        - data
+      additionalProperties: false
+    ListEvaluatorsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evaluator'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required:
+        - success
+        - data
+        - pagination
+      additionalProperties: false
+    ListEvaluatorVersionsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evaluator'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required:
+        - success
+        - data
+        - pagination
+      additionalProperties: false
+    ReplaceUpdateEvaluatorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Evaluator'
+      required:
+        - success
+        - data
+      additionalProperties: false
+    PublishEvaluatorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Evaluator'
+      required:
+        - success
+        - data
+      additionalProperties: false
+    UnpublishEvaluatorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Evaluator'
+      required:
+        - success
+        - data
+      additionalProperties: false
+    DeleteEvaluatorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Evaluator'
+      required:
+        - success
+        - data
+      additionalProperties: false
     TODOSchema:
       type: object
       properties:
