@@ -2,12 +2,12 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HoneyHive Control Plane API",
-    "description": "Manage HoneyHive control-plane resources: organizations, workspaces, projects and alerts, and\nread org usage.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nProject API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
+    "description": "Manage HoneyHive control-plane resources: organizations with their roles, templates and\nmembers, workspaces with their templates and members, projects with their members and\nalerts, and read org usage.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nProject API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
     },
-    "version": "1.17.0"
+    "version": "1.19.0"
   },
   "servers": [
     {
@@ -20,12 +20,28 @@
       "description": "Define and manage alerts. Alerts evaluate event metrics on a schedule and trigger notifications when configured thresholds are crossed.\n"
     },
     {
+      "name": "Org Members",
+      "description": "List an organization's members, invite people to it, set a member's roles, and remove people from it and from everything in it. Available on self-hosted deployments that do not enable an SSO group scheme.\n"
+    },
+    {
+      "name": "Org Templates",
+      "description": "Read and replace an organization's templates manifest, which defines the metrics and charts that new projects start with. Each workspace gets its own copy when it is created, so a new version reaches an existing workspace's projects only where that workspace's manifest merges with the organization's.\n"
+    },
+    {
       "name": "Orgs",
       "description": "Read an organization's display name and the email domains whose users join it automatically when they sign in, and update its display name.\n"
     },
     {
+      "name": "Project Members",
+      "description": "List a project's members, invite people to it, set a member's roles, and remove people from it. Available on self-hosted deployments that do not enable an SSO group scheme.\n"
+    },
+    {
       "name": "Projects",
       "description": "Create and manage projects within a workspace. A project is the container for the events, datasets, evaluations, and alerts logged against it.\n"
+    },
+    {
+      "name": "Roles",
+      "description": "Read and replace an organization's roles manifest, which defines its roles and the permissions each one grants. Available on self-hosted deployments only.\n"
     },
     {
       "name": "Usage",
@@ -34,6 +50,14 @@
     {
       "name": "Virtual Dataplanes",
       "description": "Create and manage virtual data planes. A virtual data plane is a logical tenant boundary inside an organization, hosted on a physical cluster; several virtual data planes commonly share one cluster. Workspaces live inside a virtual data plane.\n"
+    },
+    {
+      "name": "Workspace Members",
+      "description": "List a workspace's members, invite people to it, set a member's roles, and remove people from it and from every project in it. Available on self-hosted deployments that do not enable an SSO group scheme.\n"
+    },
+    {
+      "name": "Workspace Templates",
+      "description": "Read and replace a workspace's templates manifest, which defines the metrics and charts that new projects in the workspace start with.\n"
     },
     {
       "name": "Workspaces",
@@ -513,6 +537,247 @@
         }
       }
     },
+    "/v1/projects/{project_id}/members": {
+      "get": {
+        "tags": [
+          "Project Members"
+        ],
+        "operationId": "listProjectMembers",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "list",
+        "x-ts-sdk-name": "list",
+        "summary": "List a project's members",
+        "description": "Return one page of a project's members, oldest membership first. Each member carries their\nroles in the project and whether they have signed in yet. The project is identified by the\n`project_id` path parameter alone. The `x-hh-project-id` header does not participate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "1-indexed page number"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of members to return per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Members retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMembersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination parameters, or a query parameter the operation does not take"
+          },
+          "404": {
+            "description": "Project not found, the caller may not list its members, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Project Members"
+        ],
+        "operationId": "createProjectMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "create",
+        "x-ts-sdk-name": "create",
+        "summary": "Invite someone to a project",
+        "description": "Invite one email address to a project, and return the member. The address is stored\nlowercased. An address with no HoneyHive user yet gets one, and the invitee receives an\nemail. An email sent for a request made with an API key names the inviter as a HoneyHive\nteammate.\n\nThe invitee also becomes a member, with no roles, of the project's workspace, virtual data\nplane and organization, wherever they are not one already.\n\nThe new member has no roles, and is `INVITED` until they first sign in. Sign-in keeps any\nroles set before then and adds the roles the organization's roles manifest gives invited\nmembers. To give them roles now, set their roles with the `user_id` this returns.\n\nInviting an address that is already a member returns that member unchanged, and sends no\nemail, so sending the same invite again is safe. The project is identified by the\n`project_id` path parameter alone. The `x-hh-project-id` header does not participate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member invited, or returned unchanged for an address that already was one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "404": {
+            "description": "Project not found, the caller may not invite people to it, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/members/{user_id}": {
+      "patch": {
+        "tags": [
+          "Project Members"
+        ],
+        "operationId": "updateProjectMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Set a member's roles in a project",
+        "description": "Replace a member's roles in a project with the roles given, and return the member. The\nmember's current sessions must reauthorize, so the new roles apply immediately. The member\nmay still be `INVITED`. The project and the member are identified by the path parameters\nalone. The `x-hh-project-id` header does not participate.\n\nEach role must be one the organization's roles manifest defines for projects, which are the\nroles the HoneyHive app offers there. Any other role is refused with 400, including one a\nmanifest change removed, so writing back roles read before such a change can fail. When the\norganization has no valid roles manifest in force, the roles cannot be checked and the\nrequest is refused with 409.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project"
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The member's user id, as the member list returns it. One person has the same user id in every organization, workspace and project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roles set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatchMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or a role the organization's roles manifest does not define for projects"
+          },
+          "404": {
+            "description": "Project not found, the user is not a member of it or of every scope above it, the caller may not set its members' roles, or the deployment does not offer member management. The response does not say which."
+          },
+          "409": {
+            "description": "The organization has no valid roles manifest to check the roles against"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Project Members"
+        ],
+        "operationId": "deleteProjectMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "delete",
+        "x-ts-sdk-name": "delete",
+        "summary": "Remove someone from a project",
+        "description": "Remove a user from a project, which also withdraws a pending invite. The user's current\nsessions must reauthorize. Their HoneyHive user stays, along with their memberships of the\nproject's workspace, virtual data plane and organization. The project and the user are\nidentified by the path parameters alone. The `x-hh-project-id` header does not participate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the project"
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The member's user id, as the member list returns it. One person has the same user id in every organization, workspace and project"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteMemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found, the user is not a member of it, the caller may not remove its members, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      }
+    },
     "/v1/workspaces/{workspace_id}": {
       "get": {
         "tags": [
@@ -667,6 +932,344 @@
         }
       }
     },
+    "/v1/workspaces/{workspace_id}/templates_manifest": {
+      "get": {
+        "tags": [
+          "Workspace Templates"
+        ],
+        "operationId": "getWorkspaceTemplatesManifest",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get",
+        "x-ts-sdk-name": "get",
+        "summary": "Get a workspace's templates manifest",
+        "description": "Return the latest version of a workspace's templates manifest: the YAML that defines the\nmetrics and charts that new projects in the workspace start with. The workspace is\nidentified by the `workspace_id` path parameter alone. The `x-hh-workspace-id` header does\nnot participate.\n\nA workspace starts with a copy of its organization's manifest. Its projects use the\nworkspace's manifest, together with the organization's only when the workspace's manifest\nsets `config.merge_strategy` to `merge`.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Templates manifest retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTemplatesManifestResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Workspace Templates"
+        ],
+        "operationId": "updateWorkspaceTemplatesManifest",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Replace a workspace's templates manifest",
+        "description": "Save a new version of a workspace's templates manifest, which becomes the latest version.\nIt decides the metrics and charts that projects created afterward in the workspace start\nwith. Existing projects are not changed. The workspace is identified by the `workspace_id`\npath parameter alone. The `x-hh-workspace-id` header does not participate.\n\nA workspace manifest cannot define `workspace_templates`.\n\nWhen an API key makes the request and the workspace's latest version already has this\ncontent, nothing is saved and that version is returned, so applying the same manifest\nrepeatedly is safe.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutWorkspaceTemplatesManifestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Templates manifest saved, or returned unchanged for an API key whose content matched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateTemplatesManifestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or YAML that fails templates manifest validation for a workspace"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace_id}/members": {
+      "get": {
+        "tags": [
+          "Workspace Members"
+        ],
+        "operationId": "listWorkspaceMembers",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "list",
+        "x-ts-sdk-name": "list",
+        "summary": "List a workspace's members",
+        "description": "Return one page of a workspace's members, oldest membership first. Each member carries their\nroles in the workspace and whether they have signed in yet. The workspace is identified by\nthe `workspace_id` path parameter alone. The `x-hh-workspace-id` header does not\nparticipate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "1-indexed page number"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of members to return per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Members retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMembersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination parameters, or a query parameter the operation does not take"
+          },
+          "404": {
+            "description": "Workspace not found, the caller may not list its members, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Workspace Members"
+        ],
+        "operationId": "createWorkspaceMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "create",
+        "x-ts-sdk-name": "create",
+        "summary": "Invite someone to a workspace",
+        "description": "Invite one email address to a workspace, and return the member. The address is stored\nlowercased. An address with no HoneyHive user yet gets one, and the invitee receives an\nemail. An email sent for a request made with an API key names the inviter as a HoneyHive\nteammate.\n\nThe invitee also becomes a member, with no roles, of the workspace's virtual data plane and\norganization, wherever they are not one already.\n\nThe new member has no roles, and is `INVITED` until they first sign in. Sign-in keeps any\nroles set before then and adds the roles the organization's roles manifest gives invited\nmembers. To give them roles now, set their roles with the `user_id` this returns.\n\nInviting an address that is already a member returns that member unchanged, and sends no\nemail, so sending the same invite again is safe. The workspace is identified by the\n`workspace_id` path parameter alone. The `x-hh-workspace-id` header does not participate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member invited, or returned unchanged for an address that already was one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "404": {
+            "description": "Workspace not found, the caller may not invite people to it, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace_id}/members/{user_id}": {
+      "patch": {
+        "tags": [
+          "Workspace Members"
+        ],
+        "operationId": "updateWorkspaceMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Set a member's roles in a workspace",
+        "description": "Replace a member's roles in a workspace with the roles given, and return the member. The\nmember's current sessions must reauthorize, so the new roles apply immediately. The member\nmay still be `INVITED`. The workspace and the member are identified by the path parameters\nalone. The `x-hh-workspace-id` header does not participate.\n\nEach role must be one the organization's roles manifest defines for workspaces, which are\nthe roles the HoneyHive app offers there. Any other role is refused with 400, including one\na manifest change removed, so writing back roles read before such a change can fail. When\nthe organization has no valid roles manifest in force, the roles cannot be checked and the\nrequest is refused with 409.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace"
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The member's user id, as the member list returns it. One person has the same user id in every organization, workspace and project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roles set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatchMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or a role the organization's roles manifest does not define for workspaces"
+          },
+          "404": {
+            "description": "Workspace not found, the user is not a member of it or of every scope above it, the caller may not set its members' roles, or the deployment does not offer member management. The response does not say which."
+          },
+          "409": {
+            "description": "The organization has no valid roles manifest to check the roles against"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workspace Members"
+        ],
+        "operationId": "deleteWorkspaceMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "delete",
+        "x-ts-sdk-name": "delete",
+        "summary": "Remove someone from a workspace",
+        "description": "Remove a user from a workspace and from every project in it, which also withdraws a pending\ninvite. The user's current sessions must reauthorize. Their HoneyHive user stays, along with\ntheir memberships of the workspace's virtual data plane and organization. The workspace and\nthe user are identified by the path parameters alone. The `x-hh-workspace-id` header does\nnot participate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the workspace"
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The member's user id, as the member list returns it. One person has the same user id in every organization, workspace and project"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteMemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workspace not found, the user has no membership in it or in anything in it, the caller may not remove its members, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      }
+    },
     "/v1/orgs/{org_id}": {
       "get": {
         "tags": [
@@ -760,6 +1363,447 @@
           },
           "404": {
             "description": "Organization not found"
+          }
+        }
+      }
+    },
+    "/v1/orgs/{org_id}/roles_manifest": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "operationId": "getRolesManifest",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get",
+        "x-ts-sdk-name": "get",
+        "summary": "Get an organization's roles manifest",
+        "description": "Return the latest version of an organization's roles manifest: the YAML that defines its\nroles and the permissions each one grants, as the organization settings page in the\nHoneyHive app shows it. The organization is identified by the `org_id` path parameter\nalone. The `x-hh-org-id` header does not participate.\n\nAvailable on self-hosted deployments only. Elsewhere this operation returns 404. An API key\nthat carries `org.roles.get` or `org.roles.set` can carry no permission other than the\nroles and membership permissions, and is created on an organization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Roles manifest retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRolesManifestResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Organization not found, the caller may not read its roles, or the deployment is not self-hosted. The response does not say which."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Roles"
+        ],
+        "operationId": "updateRolesManifest",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Replace an organization's roles manifest",
+        "description": "Save a new version of an organization's roles manifest, which becomes the latest version.\nEvery member's current session must reauthorize, so the new roles apply to everyone\nimmediately. The organization is identified by the `org_id` path parameter alone. The\n`x-hh-org-id` header does not participate.\n\nWhen an API key makes the request, two further rules apply:\n\n- If the organization's current roles manifest already has this content, nothing is saved\n  and that version is returned, so applying the same manifest repeatedly is safe.\n- A manifest that would leave no onboarded, active member holding `org.roles.get`,\n  `org.roles.set`, `org.fine_grained_api_key_cp.list` and\n  `org.fine_grained_api_key_cp.delete` is refused with 409, so someone in the organization\n  can always revoke the key.\n\nAvailable on self-hosted deployments only. Elsewhere this operation returns 404. An API key\nthat carries `org.roles.get` or `org.roles.set` can carry no permission other than the\nroles and membership permissions, and is created on an organization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutRolesManifestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roles manifest saved, or returned unchanged for an API key whose content matched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRolesManifestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or YAML that fails roles manifest validation"
+          },
+          "404": {
+            "description": "Organization not found, the caller may not update its roles, or the deployment is not self-hosted. The response does not say which."
+          },
+          "409": {
+            "description": "The request came from an API key, and the manifest would leave no onboarded, active member able to manage roles and revoke API keys"
+          }
+        }
+      }
+    },
+    "/v1/orgs/{org_id}/templates_manifest": {
+      "get": {
+        "tags": [
+          "Org Templates"
+        ],
+        "operationId": "getOrgTemplatesManifest",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "get",
+        "x-ts-sdk-name": "get",
+        "summary": "Get an organization's templates manifest",
+        "description": "Return the latest version of an organization's templates manifest: the YAML that defines\nthe metrics and charts that new projects start with, as the templates page of the\norganization settings in the HoneyHive app shows it. The organization is identified by the\n`org_id` path parameter alone. The `x-hh-org-id` header does not participate.\n\nA workspace gets a copy of this manifest when it is created, and its projects use that\ncopy. They use this manifest as well only when the workspace's manifest sets\n`config.merge_strategy` to `merge`.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Templates manifest retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTemplatesManifestResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Organization not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Org Templates"
+        ],
+        "operationId": "updateOrgTemplatesManifest",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Replace an organization's templates manifest",
+        "description": "Save a new version of an organization's templates manifest, which becomes the latest\nversion. Existing projects are not changed. The organization is identified by the `org_id`\npath parameter alone. The `x-hh-org-id` header does not participate.\n\nA workspace gets a copy of this manifest when it is created, and its projects use that\ncopy. They use this manifest as well only when the workspace's manifest sets\n`config.merge_strategy` to `merge`. A new version therefore reaches projects in\nworkspaces created afterward, and in existing workspaces whose manifest merges. To change\nwhat new projects in an existing workspace start with, update that workspace's manifest.\n\nWhen an API key makes the request and the organization's latest version already has this\ncontent, nothing is saved and that version is returned, so applying the same manifest\nrepeatedly is safe.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutOrgTemplatesManifestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Templates manifest saved, or returned unchanged for an API key whose content matched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateTemplatesManifestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or YAML that fails templates manifest validation"
+          },
+          "404": {
+            "description": "Organization not found"
+          }
+        }
+      }
+    },
+    "/v1/orgs/{org_id}/members": {
+      "get": {
+        "tags": [
+          "Org Members"
+        ],
+        "operationId": "listOrgMembers",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "list",
+        "x-ts-sdk-name": "list",
+        "summary": "List an organization's members",
+        "description": "Return one page of an organization's members, oldest membership first. Each member carries\ntheir roles in the organization and whether they have signed in yet. The organization is\nidentified by the `org_id` path parameter alone. The `x-hh-org-id` header does not\nparticipate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "1-indexed page number"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of members to return per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Members retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMembersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination parameters, or a query parameter the operation does not take"
+          },
+          "404": {
+            "description": "Organization not found, the caller may not list its members, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Org Members"
+        ],
+        "operationId": "createOrgMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "create",
+        "x-ts-sdk-name": "create",
+        "summary": "Invite someone to an organization",
+        "description": "Invite one email address to an organization, and return the member. The address is stored\nlowercased. An address with no HoneyHive user yet gets one, and the invitee receives an\nemail. An email sent for a request made with an API key names the inviter as a HoneyHive\nteammate.\n\nThe new member has no roles, and is `INVITED` until they first sign in. Sign-in keeps any\nroles set before then and adds the roles the organization's roles manifest gives invited\nmembers. To give them roles now, set their roles with the `user_id` this returns.\n\nInviting an address that is already a member returns that member unchanged, and sends no\nemail, so sending the same invite again is safe. The organization is identified by the\n`org_id` path parameter alone. The `x-hh-org-id` header does not participate.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member invited, or returned unchanged for an address that already was one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "404": {
+            "description": "Organization not found, the caller may not invite people to it, or the deployment does not offer member management. The response does not say which."
+          }
+        }
+      }
+    },
+    "/v1/orgs/{org_id}/members/{user_id}": {
+      "patch": {
+        "tags": [
+          "Org Members"
+        ],
+        "operationId": "updateOrgMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "update",
+        "x-ts-sdk-name": "update",
+        "summary": "Set a member's roles in an organization",
+        "description": "Replace a member's roles in an organization with the roles given, and return the member. The\nmember's current sessions must reauthorize, so the new roles apply immediately. The member\nmay still be `INVITED`. The organization and the member are identified by the path\nparameters alone. The `x-hh-org-id` header does not participate.\n\nEach role must be one the organization's roles manifest defines for organizations, which are\nthe roles the HoneyHive app offers there. Any other role is refused with 400, including one\na manifest change removed, so writing back roles read before such a change can fail. When\nthe organization has no valid roles manifest in force, the roles cannot be checked and the\nrequest is refused with 409.\n\nWhen an API key makes the request, it cannot take the ability to revoke API keys from a\nmember who has signed in. If the member's roles grant `org.roles.get`, `org.roles.set`,\n`org.fine_grained_api_key_cp.list` and `org.fine_grained_api_key_cp.delete`, and the new\nroles would not, the request is refused with 409 and the change has to be made in the\nHoneyHive app. An API key can still give any member those roles, and can change the roles of\na member who has not signed in yet.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The member's user id, as the member list returns it. One person has the same user id in every organization, workspace and project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roles set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatchMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or a role the organization's roles manifest does not define for organizations"
+          },
+          "404": {
+            "description": "Organization not found, the user is not a member of it, the caller may not set its members' roles, or the deployment does not offer member management. The response does not say which."
+          },
+          "409": {
+            "description": "The organization has no valid roles manifest to check the roles against, or the request came from an API key and would take the ability to revoke API keys from a member who has signed in"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Org Members"
+        ],
+        "operationId": "deleteOrgMember",
+        "security": [
+          {
+            "ControlPlaneApiKey": []
+          }
+        ],
+        "x-cli-name": "delete",
+        "x-ts-sdk-name": "delete",
+        "summary": "Remove someone from an organization",
+        "description": "Remove a user from an organization and from every virtual data plane, workspace and project\nin it, which also withdraws a pending invite. The user's current sessions must reauthorize.\nTheir HoneyHive user stays, along with their memberships of other organizations. The\norganization and the user are identified by the path parameters alone. The `x-hh-org-id`\nheader does not participate.\n\nWhen an API key makes the request, it cannot remove a member who has signed in and whose\nroles grant `org.roles.get`, `org.roles.set`, `org.fine_grained_api_key_cp.list` and\n`org.fine_grained_api_key_cp.delete`, so someone in the organization can always revoke the\nkey. Such a request is refused with 409, and the member has to be removed in the HoneyHive\napp. A member who has not signed in yet can be removed with an API key whatever their roles.\nWhen the organization has no valid roles manifest in force, a member who has signed in\ncannot be checked, and an API key's request to remove them is refused with 409.\n\nAvailable on self-hosted deployments that do not enable an SSO group scheme. Elsewhere this\noperation returns 404. An API key that carries a membership permission can carry no\npermission other than the roles and membership permissions, and is created on an\norganization.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique identifier of the organization"
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The member's user id, as the member list returns it. One person has the same user id in every organization, workspace and project"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteMemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Organization not found, the user has no membership in it or in anything in it, the caller may not remove its members, or the deployment does not offer member management. The response does not say which."
+          },
+          "409": {
+            "description": "The request came from an API key, and the member has signed in and can revoke API keys, or the organization has no valid roles manifest to check them against"
           }
         }
       }
@@ -1809,6 +2853,191 @@
         "additionalProperties": false,
         "description": "The created alert"
       },
+      "PostMemberRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "description": "The address to invite. It is stored lowercased, because sign-in matches addresses that way"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "PatchMemberRequest": {
+        "type": "object",
+        "properties": {
+          "role_names": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "description": "The member's new roles at this scope, replacing the old ones. Each must be a role the organization's roles manifest defines for this scope's type, which are the roles the HoneyHive app offers for a member here. Any other role is refused with 400, including one a manifest change removed, so writing back roles read before a manifest change can fail"
+          }
+        },
+        "required": [
+          "role_names"
+        ],
+        "additionalProperties": false
+      },
+      "GetMembersResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "pagination"
+        ],
+        "additionalProperties": false
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "The member's user id, the same at every scope"
+          },
+          "email": {
+            "type": "string",
+            "description": "The member's email address"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The member's display name from their identity provider, when it sent one"
+          },
+          "role_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The member's roles at this scope"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "INVITED",
+              "ONBOARDED"
+            ],
+            "description": "`INVITED` until the member first signs in, `ONBOARDED` after. An API key cannot remove an `ONBOARDED` member whose organization roles let them revoke API keys, or change those roles to ones that do not, so an admin role a key grants can be undone with a key only while the member is `INVITED`."
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "When the member was added to this scope"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the member's membership of this scope last changed"
+          }
+        },
+        "required": [
+          "user_id",
+          "email",
+          "name",
+          "role_names",
+          "state",
+          "created_at",
+          "updated_at"
+        ],
+        "additionalProperties": false,
+        "description": "One member of a scope"
+      },
+      "PostMemberResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Member"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "PatchMemberResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Member"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "DeleteMemberResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "additionalProperties": false
+      },
       "OrgItem": {
         "type": "object",
         "properties": {
@@ -2063,6 +3292,146 @@
         ],
         "additionalProperties": false,
         "description": "The deleted (archived) project"
+      },
+      "ManifestItem": {
+        "type": "object",
+        "properties": {
+          "yaml_content": {
+            "type": "string",
+            "description": "The manifest, as the YAML it was saved with"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "When this version was saved"
+          }
+        },
+        "required": [
+          "yaml_content",
+          "created_at"
+        ],
+        "additionalProperties": false,
+        "description": "One version of a manifest"
+      },
+      "PutRolesManifestRequest": {
+        "type": "object",
+        "properties": {
+          "yaml_content": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The roles manifest, as YAML. It must parse and pass roles manifest validation."
+          }
+        },
+        "required": [
+          "yaml_content"
+        ],
+        "additionalProperties": false,
+        "description": "Request body for replacing an organization's roles manifest"
+      },
+      "GetRolesManifestResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ManifestItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The latest version of an organization's roles manifest"
+      },
+      "UpdateRolesManifestResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ManifestItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The organization's roles manifest after the update"
+      },
+      "PutOrgTemplatesManifestRequest": {
+        "type": "object",
+        "properties": {
+          "yaml_content": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The templates manifest, as YAML. It must parse and pass templates manifest validation for an organization."
+          }
+        },
+        "required": [
+          "yaml_content"
+        ],
+        "additionalProperties": false,
+        "description": "Request body for replacing an organization's templates manifest"
+      },
+      "PutWorkspaceTemplatesManifestRequest": {
+        "type": "object",
+        "properties": {
+          "yaml_content": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The templates manifest, as YAML. It must parse and pass templates manifest validation for a workspace, which forbids `workspace_templates`."
+          }
+        },
+        "required": [
+          "yaml_content"
+        ],
+        "additionalProperties": false,
+        "description": "Request body for replacing a workspace's templates manifest"
+      },
+      "GetTemplatesManifestResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ManifestItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The latest version of an organization's or a workspace's templates manifest"
+      },
+      "UpdateTemplatesManifestResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ManifestItem"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "additionalProperties": false,
+        "description": "The templates manifest after the update"
       },
       "GetUsageResponse": {
         "type": "object",
