@@ -9569,6 +9569,8 @@ components:
         field:
           type: string
           minLength: 1
+          maxLength: 4096
+          pattern: ^[^.]+(?:\.[^.]+)*$
         criteria:
           anyOf:
             - $ref: '#/components/schemas/NumericGtTestCriteria'

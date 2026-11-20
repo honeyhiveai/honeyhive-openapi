@@ -8,7 +8,7 @@ info:
 
     Authentication requires a fine-grained control-plane API key (values
     start with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.
-    Project API keys used with the Data Plane API will not work here. Create
+    Classic API keys used with the Data Plane API will not work here. Create
     a key in the HoneyHive app under an organization's or workspace's
     **Settings → API Keys**, or see
     [Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)
@@ -1823,7 +1823,7 @@ components:
     ControlPlaneApiKey:
       type: http
       scheme: bearer
-      description: A fine-grained control-plane API key (values begin with `hh_fgcp_`). Project API keys used with the Data Plane API will not work here. Create one in the HoneyHive app under an organization's or workspace's **Settings → API Keys**.
+      description: A fine-grained control-plane API key (values begin with `hh_fgcp_`). Classic API keys used with the Data Plane API will not work here. Create one in the HoneyHive app under an organization's or workspace's **Settings → API Keys**.
   schemas:
     AlertItem:
       type: object

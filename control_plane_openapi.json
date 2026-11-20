@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HoneyHive Control Plane API",
-    "description": "Manage HoneyHive control-plane resources: organizations with their roles, templates and\nmembers, workspaces with their templates and members, projects with their members and\nalerts, and read org usage.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nProject API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
+    "description": "Manage HoneyHive control-plane resources: organizations with their roles, templates and\nmembers, workspaces with their templates and members, projects with their members and\nalerts, and read org usage.\n\nAuthentication requires a fine-grained control-plane API key (values\nstart with `hh_fgcp_`), sent as `Authorization: Bearer <api-key>`.\nClassic API keys used with the Data Plane API will not work here. Create\na key in the HoneyHive app under an organization's or workspace's\n**Settings → API Keys**, or see\n[Authorization](https://docs.honeyhive.ai/v2/control-plane-sdk-reference/typescript#authorization)\nfor details.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
@@ -2152,7 +2152,7 @@
       "ControlPlaneApiKey": {
         "type": "http",
         "scheme": "bearer",
-        "description": "A fine-grained control-plane API key (values begin with `hh_fgcp_`). Project API keys used with the Data Plane API will not work here. Create one in the HoneyHive app under an organization's or workspace's **Settings → API Keys**."
+        "description": "A fine-grained control-plane API key (values begin with `hh_fgcp_`). Classic API keys used with the Data Plane API will not work here. Create one in the HoneyHive app under an organization's or workspace's **Settings → API Keys**."
       }
     },
     "schemas": {
