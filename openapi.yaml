@@ -4,7 +4,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.19.0
+  version: 1.20.0
 servers:
   - url: https://api.dp1.us.honeyhive.ai
 tags:
@@ -1616,12 +1616,18 @@ paths:
     get:
       tags:
         - Metrics
-      operationId: getMetrics
+      operationId: getMetricsLegacy
       security:
         - BearerAuth: []
+      deprecated: true
+      x-hidden: true
+      x-twin:
+        op: getMetrics
+        discriminator: project_id
       x-cli-name: list
       x-ts-sdk-name: list
-      summary: List all metrics
+      summary: List all metrics (deprecated)
+      description: Deprecated. Use `GET /v1/projects/{project_id}/metrics` with a data plane API key instead.
       parameters:
         - name: type
           in: query
@@ -1715,6 +1721,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeleteMetricResponse'
+  /v1/projects/{project_id}/metrics:
+    get:
+      tags:
+        - Metrics
+      operationId: getMetrics
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: list
+      x-ts-sdk-name: list
+      summary: List all metrics
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project whose metrics are listed
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by metric type
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by specific metric ID
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMetricsResponse'
   /v1/metrics/{metric_id}:
     put:
       tags:
@@ -9569,6 +9611,8 @@ components:
         field:
           type: string
           minLength: 1
+          maxLength: 4096
+          pattern: ^[^.]+(?:\.[^.]+)*$
         criteria:
           anyOf:
             - $ref: '#/components/schemas/NumericGtTestCriteria'
