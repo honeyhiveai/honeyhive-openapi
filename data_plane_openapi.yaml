@@ -6459,6 +6459,9 @@ components:
         metrics:
           type: object
           additionalProperties: {}
+        evaluations:
+          type: object
+          additionalProperties: true
         metadata:
           type: object
           additionalProperties: {}
@@ -8824,6 +8827,9 @@ components:
         metrics:
           type: object
           additionalProperties: {}
+        evaluations:
+          type: object
+          additionalProperties: true
         metadata:
           type: object
           additionalProperties: {}
