@@ -38,6 +38,9 @@ tags:
   - name: Projects
     description: |
       Create and manage projects within a workspace. A project is the container for the events, datasets, evaluations, and alerts logged against it.
+  - name: Retention Policies
+    description: |
+      Read and replace scope retention windows, or remove an override to restore inheritance. A window sets how long data is kept. The retention expiry job of the data plane that hosts the data deletes what a window no longer keeps, where that job is enabled, and deleted data cannot be recovered. max_age_days expires a session with all of its events, by the start of the session. experiment_max_age_days expires an experiment run with its sessions, by the creation of the run. Two kinds of session are kept whatever the windows are: a session of an experiment run whose record was deleted, and a session that has no session event.
   - name: Roles
     description: |
       Read and replace an organization's roles manifest, which defines its roles and the permissions each one grants. Available on self-hosted deployments only.
@@ -57,6 +60,333 @@ tags:
     description: |
       Read and manage workspaces. A workspace groups the projects belonging to one team or environment, and owns the API keys and AI provider secrets its projects share.
 paths:
+  /v1/orgs/{org_id}/retention_policy:
+    get:
+      tags:
+        - Retention Policies
+      operationId: getOrgRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: getOrg
+      x-cli-name: get-org
+      summary: Get an org retention policy
+      description: |
+        Requires org.retention_policy.get at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Returns the explicit policy, if present, and the effective policy with its source scope.
+        The nearest current policy supplies both windows. Fields are not merged across scopes.
+        When no scope in the lineage has a current policy, effective_policy is null and data is
+        retained indefinitely.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          description: The org whose retention policy is requested.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: An ancestor scope is archived.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+    put:
+      tags:
+        - Retention Policies
+      operationId: replaceOrgRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: replaceOrg
+      x-cli-name: replace-org
+      summary: Replace an org retention policy
+      description: |
+        Requires org.retention_policy.put at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Replaces both windows. Both fields are required. Null retains data indefinitely.
+        A shorter window makes older data expire. Runs of the retention expiry job delete it, and a
+        large amount of expired data can take more than one run. Deleted data cannot be recovered.
+        An explicit policy overrides inherited windows, including when both values are null.
+        Creates a new policy version and preserves the previous version for audit.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          description: The org whose retention policy is requested.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutRetentionPolicyRequest'
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: Invalid retention windows or an archived ancestor.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+    delete:
+      tags:
+        - Retention Policies
+      operationId: deleteOrgRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: deleteOrg
+      x-cli-name: delete-org
+      summary: Delete an org retention policy
+      description: |
+        Requires org.retention_policy.delete at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Retires this scope's current override and returns the inherited effective policy.
+        Preserves prior policy values and records the retiring actor, time, and cleared reason.
+        Repeated deletion is safe when no override exists.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          description: The org whose retention policy is requested.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: An ancestor scope is archived.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+  /v1/workspaces/{workspace_id}/retention_policy:
+    get:
+      tags:
+        - Retention Policies
+      operationId: getWorkspaceRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: getWorkspace
+      x-cli-name: get-workspace
+      summary: Get a workspace retention policy
+      description: |
+        Requires workspace.retention_policy.get at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Returns the explicit policy, if present, and the effective policy with its source scope.
+        The nearest current policy supplies both windows. Fields are not merged across scopes.
+        When no scope in the lineage has a current policy, effective_policy is null and data is
+        retained indefinitely.
+      parameters:
+        - in: path
+          name: workspace_id
+          required: true
+          description: The workspace whose retention policy is requested.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: An ancestor scope is archived.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+    put:
+      tags:
+        - Retention Policies
+      operationId: replaceWorkspaceRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: replaceWorkspace
+      x-cli-name: replace-workspace
+      summary: Replace a workspace retention policy
+      description: |
+        Requires workspace.retention_policy.put at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Replaces both windows. Both fields are required. Null retains data indefinitely.
+        A shorter window makes older data expire. Runs of the retention expiry job delete it, and a
+        large amount of expired data can take more than one run. Deleted data cannot be recovered.
+        An explicit policy overrides inherited windows, including when both values are null.
+        Creates a new policy version and preserves the previous version for audit.
+      parameters:
+        - in: path
+          name: workspace_id
+          required: true
+          description: The workspace whose retention policy is requested.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutRetentionPolicyRequest'
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: Invalid retention windows or an archived ancestor.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+    delete:
+      tags:
+        - Retention Policies
+      operationId: deleteWorkspaceRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: deleteWorkspace
+      x-cli-name: delete-workspace
+      summary: Delete a workspace retention policy
+      description: |
+        Requires workspace.retention_policy.delete at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Retires this scope's current override and returns the inherited effective policy.
+        Preserves prior policy values and records the retiring actor, time, and cleared reason.
+        Repeated deletion is safe when no override exists.
+      parameters:
+        - in: path
+          name: workspace_id
+          required: true
+          description: The workspace whose retention policy is requested.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: An ancestor scope is archived.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+  /v1/projects/{project_id}/retention_policy:
+    get:
+      tags:
+        - Retention Policies
+      operationId: getProjectRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: getProject
+      x-cli-name: get-project
+      summary: Get a project retention policy
+      description: |
+        Requires project.retention_policy.get at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Returns the explicit policy, if present, and the effective policy with its source scope.
+        The nearest current policy supplies both windows. Fields are not merged across scopes.
+        When no scope in the lineage has a current policy, effective_policy is null and data is
+        retained indefinitely.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          description: The project whose retention policy is requested.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: An ancestor scope is archived.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+    put:
+      tags:
+        - Retention Policies
+      operationId: replaceProjectRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: replaceProject
+      x-cli-name: replace-project
+      summary: Replace a project retention policy
+      description: |
+        Requires project.retention_policy.put at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Replaces both windows. Both fields are required. Null retains data indefinitely.
+        A shorter window makes older data expire. Runs of the retention expiry job delete it, and a
+        large amount of expired data can take more than one run. Deleted data cannot be recovered.
+        An explicit policy overrides inherited windows, including when both values are null.
+        Creates a new policy version and preserves the previous version for audit.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          description: The project whose retention policy is requested.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutRetentionPolicyRequest'
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: Invalid retention windows or an archived ancestor.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
+    delete:
+      tags:
+        - Retention Policies
+      operationId: deleteProjectRetentionPolicy
+      security:
+        - ControlPlaneApiKey: []
+      x-ts-sdk-name: deleteProject
+      x-cli-name: delete-project
+      summary: Delete a project retention policy
+      description: |
+        Requires project.retention_policy.delete at the scope in the URL.
+        The key must cover that scope. Scope headers do not select the target.
+        Retires this scope's current override and returns the inherited effective policy.
+        Preserves prior policy values and records the retiring actor, time, and cleared reason.
+        Repeated deletion is safe when no override exists.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          description: The project whose retention policy is requested.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The scope's explicit and effective retention policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRetentionPolicyResponse'
+        '400':
+          description: An ancestor scope is archived.
+        '404':
+          description: The scope is missing, archived, or inaccessible to this caller.
   /v1/projects/{project_id}/alerts:
     get:
       tags:
@@ -2638,6 +2968,40 @@ components:
         - data
       additionalProperties: false
       description: The organization's roles manifest after the update
+    PutRetentionPolicyRequest:
+      type: object
+      properties:
+        max_age_days:
+          type:
+            - integer
+            - 'null'
+          exclusiveMinimum: 0
+          maximum: 3650
+          description: Days to keep a session that belongs to no experiment run, counted from the start of the session. A session expires as a whole, with all of its events, also while it still receives events. A session of an experiment run whose record was deleted, and a session that has no session event, are kept whatever this value is. From 1 to 3650. null keeps these sessions indefinitely.
+        experiment_max_age_days:
+          type:
+            - integer
+            - 'null'
+          exclusiveMinimum: 0
+          maximum: 3650
+          description: Days to keep an experiment run, counted from the creation of the run. A run expires as a whole, with its sessions and their events. From 1 to 3650. null keeps experiment runs indefinitely.
+      required:
+        - max_age_days
+        - experiment_max_age_days
+      additionalProperties: false
+    GetRetentionPolicyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/GetRetentionPolicyResponseData'
+      required:
+        - success
+        - data
+      additionalProperties: false
     PutOrgTemplatesManifestRequest:
       type: object
       properties:
@@ -3294,4 +3658,94 @@ components:
       required:
         - critical
         - resolved
+      additionalProperties: false
+    GetRetentionPolicyResponseData:
+      type: object
+      properties:
+        policy:
+          type:
+            - object
+            - 'null'
+          properties:
+            scope_type:
+              type: string
+              enum:
+                - org
+                - workspace
+                - project
+            scope_id:
+              type: string
+              minLength: 1
+            max_age_days:
+              type:
+                - integer
+                - 'null'
+              exclusiveMinimum: 0
+              maximum: 36500
+              description: Days to keep a session that belongs to no experiment run, counted from the start of the session. A session expires as a whole, with all of its events, also while it still receives events. A session of an experiment run whose record was deleted, and a session that has no session event, are kept whatever this value is. null keeps these sessions indefinitely.
+            experiment_max_age_days:
+              type:
+                - integer
+                - 'null'
+              exclusiveMinimum: 0
+              maximum: 36500
+              description: Days to keep an experiment run, counted from the creation of the run. A run expires as a whole, with its sessions and their events. null keeps experiment runs indefinitely.
+            created_by_actor_type:
+              type: string
+            created_by_actor_id:
+              type: string
+              minLength: 1
+            created_at:
+              type: string
+              format: date-time
+            effective_from:
+              type: string
+              format: date-time
+          required:
+            - scope_type
+            - scope_id
+            - max_age_days
+            - experiment_max_age_days
+            - created_by_actor_type
+            - created_by_actor_id
+            - created_at
+            - effective_from
+          additionalProperties: false
+        effective_policy:
+          type:
+            - object
+            - 'null'
+          properties:
+            scope_type:
+              type: string
+              enum:
+                - org
+                - workspace
+                - project
+            scope_id:
+              type: string
+              minLength: 1
+            max_age_days:
+              type:
+                - integer
+                - 'null'
+              exclusiveMinimum: 0
+              maximum: 36500
+              description: Days to keep a session that belongs to no experiment run, counted from the start of the session. A session expires as a whole, with all of its events, also while it still receives events. A session of an experiment run whose record was deleted, and a session that has no session event, are kept whatever this value is. null keeps these sessions indefinitely.
+            experiment_max_age_days:
+              type:
+                - integer
+                - 'null'
+              exclusiveMinimum: 0
+              maximum: 36500
+              description: Days to keep an experiment run, counted from the creation of the run. A run expires as a whole, with its sessions and their events. null keeps experiment runs indefinitely.
+          required:
+            - scope_type
+            - scope_id
+            - max_age_days
+            - experiment_max_age_days
+          additionalProperties: false
+      required:
+        - policy
+        - effective_policy
       additionalProperties: false

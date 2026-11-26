@@ -1651,12 +1651,18 @@ paths:
     post:
       tags:
         - Metrics
-      operationId: createMetric
+      operationId: createMetricLegacy
       security:
         - BearerAuth: []
+      deprecated: true
+      x-hidden: true
+      x-twin:
+        op: createMetric
+        discriminator: project_id
       x-cli-name: create
       x-ts-sdk-name: create
-      summary: Create a new metric
+      summary: Create a new metric (deprecated)
+      description: Deprecated. Use `POST /v1/projects/{project_id}/metrics` with a data plane API key instead.
       requestBody:
         required: true
         content:
@@ -1757,6 +1763,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetMetricsResponse'
+    post:
+      tags:
+        - Metrics
+      operationId: createMetric
+      security:
+        - DataPlaneApiKey: []
+      x-cli-name: create
+      x-ts-sdk-name: create
+      summary: Create a new metric
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project that owns the metric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMetricRequest'
+      responses:
+        '200':
+          description: Metric created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateMetricResponse'
   /v1/metrics/{metric_id}:
     put:
       tags:
@@ -1909,13 +1944,55 @@ paths:
     post:
       tags:
         - Metrics
-      operationId: runMetric
+      operationId: runMetricLegacy
       security:
         - BearerAuth: []
+      deprecated: true
+      x-hidden: true
+      x-twin:
+        op: runMetric
+        discriminator: project_id
+      x-cli-name: run
+      x-ts-sdk-name: run
+      summary: Run a metric evaluation (deprecated)
+      description: Deprecated. Use `POST /v1/projects/{project_id}/metrics/run` with a data plane API key instead. Executes a metric on a specific event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunMetricRequest'
+      responses:
+        '200':
+          description: Metric evaluation succeeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunMetricResponse'
+        '400':
+          description: Bad request. Either the request body failed validation (malformed metric or event), or the metric could not be evaluated because the request was deficient before any compute ran (the metric requires ground truth the event lacks, or the metric config is invalid). The error `message` describes the specific cause.
+        '422':
+          description: Could not process content. A compute request was dispatched but evaluation failed — e.g. the metric's code raised an error (`errorCode` `execution_error`, `compilation_error`) or the LLM evaluator's template/provider/response failed (`template_render_error`, `llm_response_parse_error`, ...). The error `message` carries the evaluator's detailed failure text.
+        '500':
+          description: Internal error while running the metric.
+  /v1/projects/{project_id}/metrics/run:
+    post:
+      tags:
+        - Metrics
+      operationId: runMetric
+      security:
+        - DataPlaneApiKey: []
       x-cli-name: run
       x-ts-sdk-name: run
       summary: Run a metric evaluation
       description: Execute a metric on a specific event
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the project whose workspace runs the metric
       requestBody:
         required: true
         content:
@@ -1939,15 +2016,15 @@ paths:
     post:
       tags:
         - Metrics
-      operationId: runMetricLegacy
+      operationId: runMetricRunMetricPathLegacy
       security:
         - BearerAuth: []
       deprecated: true
       x-hidden: true
       x-cli-exclude: true
       x-ts-sdk-exclude: true
-      summary: Run a metric evaluation (deprecated)
-      description: Deprecated. Use `POST /v1/metrics/run` instead.
+      summary: Run a metric evaluation by the run_metric path (deprecated)
+      description: Deprecated. Use `POST /v1/projects/{project_id}/metrics/run` with a data plane API key instead.
       requestBody:
         required: true
         content:
@@ -11366,7 +11443,7 @@ components:
           additionalProperties: {}
         workspace_id:
           type: string
-          description: 'Deprecated: ignored. The workspace whose provider credentials run the metric is derived from the caller’s authenticated scope.'
+          description: 'Deprecated: ignored. The metric runs with the provider credentials of the workspace that contains the request’s project.'
           deprecated: true
         feedback:
           $ref: '#/components/schemas/RunMetricRequestEventFeedback'
@@ -11528,7 +11605,7 @@ components:
           additionalProperties: {}
         workspace_id:
           type: string
-          description: 'Deprecated: ignored. The workspace whose provider credentials run the metric is derived from the caller’s authenticated scope.'
+          description: 'Deprecated: ignored. The metric runs with the provider credentials of the workspace that contains the request’s project.'
           deprecated: true
         feedback:
           $ref: '#/components/schemas/LegacyRunMetricRequestEventFeedback'
